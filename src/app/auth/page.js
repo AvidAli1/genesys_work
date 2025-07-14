@@ -101,8 +101,7 @@ export default function AuthPage() {
 
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
                 <p className="text-sm text-blue-800">
-                  <strong>Tip:</strong> Use email containing "admin" for admin access, any other email for regular user
-                  access.
+                  <strong>Tip:</strong> Use email containing &quot;admin&quot; for admin access, any other email for regular user access.
                 </p>
               </div>
             </TabsContent>

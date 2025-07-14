@@ -78,7 +78,7 @@ export default function LoginPage() {
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-              {"Don't have an account? "}
+               Don&apos;t have an account?{" "}
               <Link href="/signup" className="text-blue-600 hover:underline">
                 Sign up
               </Link>
@@ -87,7 +87,7 @@ export default function LoginPage() {
 
           <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
             <p className="text-sm text-yellow-800">
-              <strong>Demo:</strong> Use any email/password. Include "admin" in email for admin access.
+              <strong>Demo:</strong> Use any email/password. Include &quot;admin&quot; in email for admin access.
             </p>
           </div>
         </CardContent>
