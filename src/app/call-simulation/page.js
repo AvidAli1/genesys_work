@@ -6,60 +6,68 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-// Updated SVG Icon Components with className prop
-const MicIcon = ({ className }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-    <line x1="12" y1="19" x2="12" y2="23" />
-    <line x1="8" y1="23" x2="16" y2="23" />
-  </svg>
-)
-
-const MicOffIcon = ({ className }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <line x1="1" y1="1" x2="23" y2="23" />
-    <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" />
-    <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 0 .11 1.23" />
-    <line x1="12" y1="19" x2="12" y2="23" />
-    <line x1="8" y1="23" x2="16" y2="23" />
-  </svg>
-)
-
+// SVG Icons for all controls
 const PhoneIcon = ({ className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
     <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
   </svg>
 )
 
-const PhoneOffIcon = ({ className }) => (
+const MicrophoneOnIcon = ({ className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91" />
-    <line x1="23" y1="1" x2="1" y2="23" />
+    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
+    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+    <line x1="12" y1="19" x2="12" y2="23"></line>
+    <line x1="8" y1="23" x2="16" y2="23"></line>
   </svg>
 )
 
-const Volume2Icon = ({ className }) => (
+const MicrophoneOffIcon = ({ className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
+    <line x1="1" y1="1" x2="23" y2="23"></line>
+    <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path>
+    <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path>
+    <line x1="12" y1="19" x2="12" y2="23"></line>
+    <line x1="8" y1="23" x2="16" y2="23"></line>
   </svg>
 )
 
-const VolumeXIcon = ({ className }) => (
+const SpeakerOnIcon = ({ className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-    <line x1="23" y1="9" x2="17" y2="15" />
-    <line x1="17" y1="9" x2="23" y2="15" />
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+    <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
   </svg>
 )
 
-const CircleIcon = ({ className }) => (
+const SpeakerOffIcon = ({ className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <circle cx="12" cy="12" r="10" />
+    <line x1="1" y1="1" x2="23" y2="23"></line>
+    <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V6a3 3 0 0 0-5.94-.6"></path>
+    <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path>
+    <path d="M12 19v4"></path>
+    <path d="M8 23h8"></path>
   </svg>
 )
 
+const RecordingOnIcon = ({ className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" className={className}>
+    <circle cx="12" cy="12" r="8"></circle>
+  </svg>
+)
+
+const RecordingOffIcon = ({ className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <circle cx="12" cy="12" r="10"></circle>
+  </svg>
+)
+
+const EndCallIcon = ({ className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"></path>
+    <line x1="23" y1="1" x2="1" y2="23"></line>
+  </svg>
+)
 
 export default function CallSimulationPage() {
   const [isCallActive, setIsCallActive] = useState(false)
@@ -211,7 +219,7 @@ export default function CallSimulationPage() {
               ) : (
                 // Active call screen
                 <div className="flex flex-col h-96">
-                  {/* Call Header */}
+                  {/* Call Header (keep this the same) */}
                   <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 text-center">
                     <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
                       <span className="text-2xl font-bold">AI</span>
@@ -221,13 +229,13 @@ export default function CallSimulationPage() {
                     <p className="text-lg font-mono mt-2">{formatDuration(callDuration)}</p>
                     {isRecordingCall && (
                       <div className="flex items-center justify-center mt-2">
-                        <CircleIcon className="h-3 w-3 text-red-400 fill-current animate-pulse mr-2" />
+                        <div className="h-3 w-3 bg-red-400 rounded-full animate-pulse mr-2"></div>
                         <span className="text-sm text-red-200">Recording</span>
                       </div>
                     )}
                   </div>
 
-                  {/* Call Controls */}
+                  {/* Call Controls with Emojis */}
                   <div className="flex-1 bg-gray-50 flex items-center justify-center">
                     <div className="grid grid-cols-4 gap-6">
                       {/* Mute Button */}
@@ -235,13 +243,13 @@ export default function CallSimulationPage() {
                         onClick={toggleMute}
                         size="lg"
                         className={cn(
-                          "rounded-full h-16 w-16",
+                          "rounded-full h-16 w-16 text-2xl",
                           isMuted
-                            ? "bg-red-500 text-white hover:bg-red-600"
-                            : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-100",
+                            ? "bg-red-500 hover:bg-red-600"
+                            : "bg-white border border-gray-300 hover:bg-gray-100",
                         )}
                       >
-                        {isMuted ? <MicOffIcon className="h-6 w-6" /> : <MicIcon className="h-6 w-6" />}
+                        {isMuted ? "🔇" : "🎤"}
                       </Button>
 
                       {/* Speaker Button */}
@@ -249,13 +257,13 @@ export default function CallSimulationPage() {
                         onClick={toggleSpeaker}
                         size="lg"
                         className={cn(
-                          "rounded-full h-16 w-16",
+                          "rounded-full h-16 w-16 text-2xl",
                           isSpeakerOn
-                            ? "bg-blue-500 text-white hover:bg-blue-600"
-                            : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-100",
+                            ? "bg-blue-500 hover:bg-blue-600"
+                            : "bg-white border border-gray-300 hover:bg-gray-100",
                         )}
                       >
-                        {isSpeakerOn ? <Volume2Icon className="h-6 w-6" /> : <VolumeXIcon className="h-6 w-6" />}
+                        {isSpeakerOn ? "🔊" : "🔈"}
                       </Button>
 
                       {/* Record Button */}
@@ -263,27 +271,27 @@ export default function CallSimulationPage() {
                         onClick={toggleCallRecording}
                         size="lg"
                         className={cn(
-                          "rounded-full h-16 w-16",
+                          "rounded-full h-16 w-16 text-2xl",
                           isRecordingCall
-                            ? "bg-red-500 text-white animate-pulse hover:bg-red-600"
-                            : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-100",
+                            ? "bg-red-500 hover:bg-red-600"
+                            : "bg-white border border-gray-300 hover:bg-gray-100",
                         )}
                       >
-                        <CircleIcon className={`h-6 w-6 ${isRecordingCall ? "fill-current" : ""}`} />
+                        {isRecordingCall ? "⏺" : "⏸"}
                       </Button>
 
                       {/* End Call Button */}
                       <Button
                         onClick={endCall}
                         size="lg"
-                        className="rounded-full h-16 w-16 bg-red-500 hover:bg-red-600 text-white"
+                        className="rounded-full h-16 w-16 bg-red-500 hover:bg-red-600 text-xl"
                       >
-                        <PhoneOffIcon className="h-6 w-6" />
+                        ✖
                       </Button>
                     </div>
                   </div>
 
-                  {/* Call Status Bar */}
+                  {/* Call Status Bar (keep this the same) */}
                   <div className="bg-white border-t p-4 text-center text-sm text-gray-600">
                     <div className="flex justify-center items-center space-x-4">
                       {isMuted && <span className="text-red-600">🔇 Muted</span>}
@@ -301,7 +309,7 @@ export default function CallSimulationPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Volume2Icon className="h-5 w-5" />
+              <SpeakerOnIcon className="h-5 w-5" />
               Live Transcript
             </CardTitle>
             <CardDescription>Real-time conversation transcript</CardDescription>
@@ -316,9 +324,8 @@ export default function CallSimulationPage() {
                 conversation.map((message, index) => (
                   <div key={index} className={`flex ${message.type === "user" ? "justify-end" : "justify-start"}`}>
                     <div
-                      className={`max-w-xs px-3 py-2 rounded-lg text-sm ${
-                        message.type === "user" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-900"
-                      }`}
+                      className={`max-w-xs px-3 py-2 rounded-lg text-sm ${message.type === "user" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-900"
+                        }`}
                     >
                       <p>{message.message}</p>
                       <p className={`text-xs mt-1 ${message.type === "user" ? "text-blue-100" : "text-gray-500"}`}>

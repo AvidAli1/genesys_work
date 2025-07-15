@@ -6,6 +6,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Users, Building, Settings, BarChart3, Plus, Edit, Trash2 } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label" // Assuming Label is available or will be created
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("tenants")
@@ -23,6 +33,9 @@ export default function AdminPage() {
     { id: 2, name: "Jane Smith", email: "jane@techstart.com", tenant: "TechStart Inc", role: "User" },
     { id: 3, name: "Bob Wilson", email: "bob@global.com", tenant: "Global Solutions", role: "Manager" },
   ])
+
+  const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false)
+  const [newUserData, setNewUserData] = useState({ name: "", email: "", tenant: "", role: "" })
 
   useEffect(() => {
     const isAuthenticated = localStorage.getItem("isAuthenticated")
@@ -44,6 +57,17 @@ export default function AdminPage() {
       role: userRole,
     })
   }, [router])
+
+  const handleAddUser = (e) => {
+    e.preventDefault()
+    const newUser = {
+      id: users.length > 0 ? Math.max(...users.map((u) => u.id)) + 1 : 1, // Simple ID generation
+      ...newUserData,
+    }
+    setUsers((prevUsers) => [...prevUsers, newUser])
+    setNewUserData({ name: "", email: "", tenant: "", role: "" }) // Clear form
+    setIsAddUserDialogOpen(false) // Close dialog
+  }
 
   const tabs = [
     { id: "tenants", label: "Tenants", icon: Building },
@@ -109,10 +133,74 @@ export default function AdminPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">User Management</h2>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Add User
-        </Button>
+        <Dialog open={isAddUserDialogOpen} onOpenChange={setIsAddUserDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Add User
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Add New User</DialogTitle>
+              <DialogDescription>Enter the details for the new user. Click save when you're done.</DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleAddUser} className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="name" className="text-right">
+                  Name
+                </Label>
+                <Input
+                  id="name"
+                  value={newUserData.name}
+                  onChange={(e) => setNewUserData({ ...newUserData, name: e.target.value })}
+                  className="col-span-3"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="email" className="text-right">
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={newUserData.email}
+                  onChange={(e) => setNewUserData({ ...newUserData, email: e.target.value })}
+                  className="col-span-3"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="tenant" className="text-right">
+                  Tenant
+                </Label>
+                <Input
+                  id="tenant"
+                  value={newUserData.tenant}
+                  onChange={(e) => setNewUserData({ ...newUserData, tenant: e.target.value })}
+                  className="col-span-3"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="role" className="text-right">
+                  Role
+                </Label>
+                <Input
+                  id="role"
+                  value={newUserData.role}
+                  onChange={(e) => setNewUserData({ ...newUserData, role: e.target.value })}
+                  className="col-span-3"
+                  required
+                />
+              </div>
+              <DialogFooter>
+                <Button type="submit">Add User</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Card>
