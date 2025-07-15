@@ -4,6 +4,9 @@ import Navigation from "@/components/navigation"
 export const metadata = {
   title: "Genesys Voicebot SaaS",
   description: "Multi-tenant RAG-based SaaS Voicebot",
+  icons: {
+    icon: "/favicon.ico",
+  },
 }
 
 export default function RootLayout({ children }) {
