@@ -8,13 +8,35 @@ import { cn } from "@/lib/utils"
 
 // SVG Icons for all controls
 const PhoneIcon = ({ className }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
     <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
   </svg>
 )
 
 const MicrophoneOnIcon = ({ className }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
     <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
     <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
     <line x1="12" y1="19" x2="12" y2="23"></line>
@@ -23,7 +45,18 @@ const MicrophoneOnIcon = ({ className }) => (
 )
 
 const MicrophoneOffIcon = ({ className }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
     <line x1="1" y1="1" x2="23" y2="23"></line>
     <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path>
     <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path>
@@ -33,7 +66,18 @@ const MicrophoneOffIcon = ({ className }) => (
 )
 
 const SpeakerOnIcon = ({ className }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
     <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
     <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
     <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
@@ -41,7 +85,18 @@ const SpeakerOnIcon = ({ className }) => (
 )
 
 const SpeakerOffIcon = ({ className }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
     <line x1="1" y1="1" x2="23" y2="23"></line>
     <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V6a3 3 0 0 0-5.94-.6"></path>
     <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path>
@@ -51,19 +106,50 @@ const SpeakerOffIcon = ({ className }) => (
 )
 
 const RecordingOnIcon = ({ className }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" className={className}>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    stroke="currentColor"
+    strokeWidth="2"
+    className={className}
+  >
     <circle cx="12" cy="12" r="8"></circle>
   </svg>
 )
 
 const RecordingOffIcon = ({ className }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
     <circle cx="12" cy="12" r="10"></circle>
   </svg>
 )
 
 const EndCallIcon = ({ className }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
     <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"></path>
     <line x1="23" y1="1" x2="1" y2="23"></line>
   </svg>
@@ -80,6 +166,10 @@ export default function CallSimulationPage() {
   const callIntervalRef = useRef(null)
   const conversationIntervalRef = useRef(null)
   const router = useRouter()
+
+  // New state for text chat
+  const [textMessage, setTextMessage] = useState("")
+  const [isTyping, setIsTyping] = useState(false)
 
   useEffect(() => {
     const isAuthenticated = localStorage.getItem("isAuthenticated")
@@ -108,7 +198,12 @@ export default function CallSimulationPage() {
       setTimeout(() => {
         setCallStatus("Connected")
         setConversation([
-          { type: "bot", message: "Hello! I'm your AI assistant. How can I help you today?", timestamp: new Date() },
+          {
+            type: "bot",
+            message: "Hello! I'm your AI assistant. How can I help you today?",
+            timestamp: new Date(),
+            isText: false,
+          },
         ])
       }, 2000)
 
@@ -149,13 +244,53 @@ export default function CallSimulationPage() {
 
     // Add user message
     const userMessage = mockUserQuestions[Math.floor(Math.random() * mockUserQuestions.length)]
-    setConversation((prev) => [...prev, { type: "user", message: userMessage, timestamp: new Date() }])
+    setConversation((prev) => [...prev, { type: "user", message: userMessage, timestamp: new Date(), isText: false }])
 
     // Add bot response after delay
     setTimeout(() => {
       const botResponse = mockBotResponses[Math.floor(Math.random() * mockBotResponses.length)]
-      setConversation((prev) => [...prev, { type: "bot", message: botResponse, timestamp: new Date() }])
+      setConversation((prev) => [...prev, { type: "bot", message: botResponse, timestamp: new Date(), isText: false }])
     }, 2000)
+  }
+
+  // New function for handling text messages
+  const handleSendTextMessage = async (e) => {
+    e.preventDefault()
+    if (!textMessage.trim()) return
+
+    // Add user message to conversation
+    const userMessage = {
+      type: "user",
+      message: textMessage,
+      timestamp: new Date(),
+      isText: true,
+    }
+    setConversation((prev) => [...prev, userMessage])
+    setTextMessage("")
+    setIsTyping(true)
+
+    // Simulate AI response delay
+    setTimeout(() => {
+      const aiResponses = [
+        "I understand your question. Let me help you with that.",
+        "That's a great point! Here's what I can tell you about that topic.",
+        "I'm here to assist you. Could you provide more details?",
+        "Based on your message, I recommend the following approach.",
+        "Thank you for reaching out. I'm processing your request now.",
+        "I can help you with that. Let me provide you with the information you need.",
+        "That's an interesting question. Here's my response based on our knowledge base.",
+        "I'm glad you asked! This is something I can definitely help you with.",
+      ]
+
+      const aiResponse = {
+        type: "bot",
+        message: aiResponses[Math.floor(Math.random() * aiResponses.length)],
+        timestamp: new Date(),
+        isText: true,
+      }
+      setConversation((prev) => [...prev, aiResponse])
+      setIsTyping(false)
+    }, 1500)
   }
 
   const formatDuration = (seconds) => {
@@ -219,7 +354,7 @@ export default function CallSimulationPage() {
               ) : (
                 // Active call screen
                 <div className="flex flex-col h-96">
-                  {/* Call Header (keep this the same) */}
+                  {/* Call Header */}
                   <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 text-center">
                     <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
                       <span className="text-2xl font-bold">AI</span>
@@ -244,9 +379,7 @@ export default function CallSimulationPage() {
                         size="lg"
                         className={cn(
                           "rounded-full h-16 w-16 text-2xl",
-                          isMuted
-                            ? "bg-red-500 hover:bg-red-600"
-                            : "bg-white border border-gray-300 hover:bg-gray-100",
+                          isMuted ? "bg-red-500 hover:bg-red-600" : "bg-white border border-gray-300 hover:bg-gray-100",
                         )}
                       >
                         {isMuted ? "🔇" : "🎤"}
@@ -291,7 +424,7 @@ export default function CallSimulationPage() {
                     </div>
                   </div>
 
-                  {/* Call Status Bar (keep this the same) */}
+                  {/* Call Status Bar */}
                   <div className="bg-white border-t p-4 text-center text-sm text-gray-600">
                     <div className="flex justify-center items-center space-x-4">
                       {isMuted && <span className="text-red-600">🔇 Muted</span>}
@@ -305,36 +438,89 @@ export default function CallSimulationPage() {
           </Card>
         </div>
 
-        {/* Conversation History */}
+        {/* Enhanced Conversation History with Text Chat */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <SpeakerOnIcon className="h-5 w-5" />
-              Live Transcript
+              Live Transcript & Chat
             </CardTitle>
-            <CardDescription>Real-time conversation transcript</CardDescription>
+            <CardDescription>Real-time conversation transcript and text messaging</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4 max-h-80 overflow-y-auto">
-              {conversation.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">
-                  {isCallActive ? "Conversation will appear here..." : "Start a call to see the transcript"}
-                </p>
-              ) : (
-                conversation.map((message, index) => (
-                  <div key={index} className={`flex ${message.type === "user" ? "justify-end" : "justify-start"}`}>
-                    <div
-                      className={`max-w-xs px-3 py-2 rounded-lg text-sm ${message.type === "user" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-900"
+            <div className="flex flex-col h-96">
+              {/* Chat Messages */}
+              <div className="flex-1 space-y-4 overflow-y-auto p-4 bg-gray-50 rounded-t-lg">
+                {conversation.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">
+                    {isCallActive ? "Conversation will appear here..." : "Start a call or send a message to begin"}
+                  </p>
+                ) : (
+                  conversation.map((message, index) => (
+                    <div key={index} className={`flex ${message.type === "user" ? "justify-end" : "justify-start"}`}>
+                      <div
+                        className={`max-w-xs px-4 py-2 rounded-lg text-sm ${
+                          message.type === "user"
+                            ? "bg-blue-500 text-white rounded-br-none"
+                            : "bg-white text-gray-900 border rounded-bl-none shadow-sm"
                         }`}
-                    >
-                      <p>{message.message}</p>
-                      <p className={`text-xs mt-1 ${message.type === "user" ? "text-blue-100" : "text-gray-500"}`}>
-                        {message.timestamp.toLocaleTimeString()}
-                      </p>
+                      >
+                        <p>{message.message}</p>
+                        <div className="flex items-center justify-between mt-1">
+                          <p className={`text-xs ${message.type === "user" ? "text-blue-100" : "text-gray-500"}`}>
+                            {message.timestamp.toLocaleTimeString()}
+                          </p>
+                          {message.isText && (
+                            <span
+                              className={`text-xs ml-2 ${message.type === "user" ? "text-blue-200" : "text-gray-400"}`}
+                            >
+                              💬
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+                {isTyping && (
+                  <div className="flex justify-start">
+                    <div className="bg-white text-gray-900 border rounded-lg rounded-bl-none shadow-sm px-4 py-2 max-w-xs">
+                      <div className="flex space-x-1">
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                        <div
+                          className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                          style={{ animationDelay: "0.1s" }}
+                        ></div>
+                        <div
+                          className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                          style={{ animationDelay: "0.2s" }}
+                        ></div>
+                      </div>
                     </div>
                   </div>
-                ))
-              )}
+                )}
+              </div>
+
+              {/* Text Input Area */}
+              <div className="border-t bg-white p-4 rounded-b-lg">
+                <form onSubmit={handleSendTextMessage} className="flex space-x-2">
+                  <input
+                    type="text"
+                    value={textMessage}
+                    onChange={(e) => setTextMessage(e.target.value)}
+                    placeholder="Type a message..."
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    disabled={isTyping}
+                  />
+                  <button
+                    type="submit"
+                    disabled={!textMessage.trim() || isTyping}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Send
+                  </button>
+                </form>
+              </div>
             </div>
           </CardContent>
         </Card>

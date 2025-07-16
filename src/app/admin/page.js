@@ -44,55 +44,94 @@ export default function AdminPage() {
   const [newUserData, setNewUserData] = useState({ name: "", email: "", tenant: "", role: "" })
   const [editingUserData, setEditingUserData] = useState(null)
 
-  // --- State for Billing Plans ---
-  const [billingPlans, setBillingPlans] = useState([
+  // Replace the existing billingPlans state with this:
+  const [userUsageData, setUserUsageData] = useState([
     {
       id: 1,
-      name: "Basic",
-      price_monthly: 29,
-      description: "Perfect for small teams getting started",
-      query_limit: "100/day",
-      token_limit: "10,000/month",
-      stt_seconds: "600",
-      tts_seconds: "600",
-      docs_limit: "5",
+      user: "john@acme.com",
+      name: "John Doe",
+      plan: "Pro",
+      queryUsed: 342,
+      queryLimit: 500,
+      tokenUsed: 28500,
+      tokenLimit: 50000,
+      sttUsed: 1850,
+      sttLimit: 3000,
+      ttsUsed: 2100,
+      ttsLimit: 3000,
+      docsUsed: 23,
+      docsLimit: 50,
+      lastActive: "2024-01-15T10:30:00Z",
     },
     {
       id: 2,
-      name: "Pro",
-      price_monthly: 99,
-      description: "For growing businesses with more needs",
-      query_limit: "500/day",
-      token_limit: "50,000/month",
-      stt_seconds: "3,000",
-      tts_seconds: "3,000",
-      docs_limit: "50",
+      user: "jane@techstart.com",
+      name: "Jane Smith",
+      plan: "Basic",
+      queryUsed: 89,
+      queryLimit: 100,
+      tokenUsed: 7200,
+      tokenLimit: 10000,
+      sttUsed: 450,
+      sttLimit: 600,
+      ttsUsed: 380,
+      ttsLimit: 600,
+      docsUsed: 4,
+      docsLimit: 5,
+      lastActive: "2024-01-15T14:22:00Z",
     },
     {
       id: 3,
-      name: "Enterprise",
-      price_monthly: 299,
-      description: "For large organizations with custom needs",
-      query_limit: "Unlimited",
-      token_limit: "200,000/month",
-      stt_seconds: "10,000",
-      tts_seconds: "10,000",
-      docs_limit: "Unlimited",
+      user: "bob@global.com",
+      name: "Bob Wilson",
+      plan: "Enterprise",
+      queryUsed: 1250,
+      queryLimit: "Unlimited",
+      tokenUsed: 125000,
+      tokenLimit: 200000,
+      sttUsed: 5500,
+      sttLimit: 10000,
+      ttsUsed: 6200,
+      ttsLimit: 10000,
+      docsUsed: 156,
+      docsLimit: "Unlimited",
+      lastActive: "2024-01-15T16:45:00Z",
+    },
+    {
+      id: 4,
+      user: "alice@startup.io",
+      name: "Alice Johnson",
+      plan: "Pro",
+      queryUsed: 445,
+      queryLimit: 500,
+      tokenUsed: 41200,
+      tokenLimit: 50000,
+      sttUsed: 2650,
+      sttLimit: 3000,
+      ttsUsed: 2890,
+      ttsLimit: 3000,
+      docsUsed: 38,
+      docsLimit: 50,
+      lastActive: "2024-01-15T09:15:00Z",
+    },
+    {
+      id: 5,
+      user: "mike@company.com",
+      name: "Mike Davis",
+      plan: "Basic",
+      queryUsed: 67,
+      queryLimit: 100,
+      tokenUsed: 5800,
+      tokenLimit: 10000,
+      sttUsed: 320,
+      sttLimit: 600,
+      ttsUsed: 290,
+      ttsLimit: 600,
+      docsUsed: 3,
+      docsLimit: 5,
+      lastActive: "2024-01-15T11:30:00Z",
     },
   ])
-  const [isAddPlanDialogOpen, setIsAddPlanDialogOpen] = useState(false)
-  const [isEditPlanDialogOpen, setIsEditPlanDialogOpen] = useState(false)
-  const [newPlanData, setNewPlanData] = useState({
-    name: "",
-    price_monthly: 0,
-    description: "",
-    query_limit: "",
-    token_limit: "",
-    stt_seconds: "",
-    tts_seconds: "",
-    docs_limit: "",
-  })
-  const [editingPlanData, setEditingPlanData] = useState(null)
 
   useEffect(() => {
     const isAuthenticated = localStorage.getItem("isAuthenticated")
@@ -163,45 +202,6 @@ export default function AdminPage() {
 
   const handleDeleteTenant = (id) => {
     setTenants((prevTenants) => prevTenants.filter((tenant) => tenant.id !== id))
-  }
-
-  // --- Billing Plan Management Functions ---
-  const handleAddPlan = (e) => {
-    e.preventDefault()
-    const newPlan = {
-      id: billingPlans.length > 0 ? Math.max(...billingPlans.map((p) => p.id)) + 1 : 1,
-      ...newPlanData,
-      price_monthly: Number.parseFloat(newPlanData.price_monthly), // Ensure price is a number
-    }
-    setBillingPlans((prevPlans) => [...prevPlans, newPlan])
-    setNewPlanData({
-      name: "",
-      price_monthly: 0,
-      description: "",
-      query_limit: "",
-      token_limit: "",
-      stt_seconds: "",
-      tts_seconds: "",
-      docs_limit: "",
-    })
-    setIsAddPlanDialogOpen(false)
-  }
-
-  const handleEditPlan = (e) => {
-    e.preventDefault()
-    setBillingPlans((prevPlans) =>
-      prevPlans.map((plan) =>
-        plan.id === editingPlanData.id
-          ? { ...editingPlanData, price_monthly: Number.parseFloat(editingPlanData.price_monthly) }
-          : plan,
-      ),
-    )
-    setEditingPlanData(null)
-    setIsEditPlanDialogOpen(false)
-  }
-
-  const handleDeletePlan = (id) => {
-    setBillingPlans((prevPlans) => prevPlans.filter((plan) => plan.id !== id))
   }
 
   const tabs = [
@@ -547,311 +547,185 @@ export default function AdminPage() {
     </div>
   )
 
-  const renderBillingPlans = () => (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Billing Plans Management</h2>
-        <Dialog open={isAddPlanDialogOpen} onOpenChange={setIsAddPlanDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Plan
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Add New Billing Plan</DialogTitle>
-              <DialogDescription>{"Enter the details for the new billing plan."}</DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleAddPlan} className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="plan-name" className="text-right">
-                  Name
-                </Label>
-                <Input
-                  id="plan-name"
-                  value={newPlanData.name}
-                  onChange={(e) => setNewPlanData({ ...newPlanData, name: e.target.value })}
-                  className="col-span-3"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="plan-price" className="text-right">
-                  Price/Month
-                </Label>
-                <Input
-                  id="plan-price"
-                  type="number"
-                  value={newPlanData.price_monthly}
-                  onChange={(e) => setNewPlanData({ ...newPlanData, price_monthly: e.target.value })}
-                  className="col-span-3"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="plan-description" className="text-right">
-                  Description
-                </Label>
-                <Input
-                  id="plan-description"
-                  value={newPlanData.description}
-                  onChange={(e) => setNewPlanData({ ...newPlanData, description: e.target.value })}
-                  className="col-span-3"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="plan-query-limit" className="text-right">
-                  Query Limit
-                </Label>
-                <Input
-                  id="plan-query-limit"
-                  value={newPlanData.query_limit}
-                  onChange={(e) => setNewPlanData({ ...newPlanData, query_limit: e.target.value })}
-                  className="col-span-3"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="plan-token-limit" className="text-right">
-                  Token Limit
-                </Label>
-                <Input
-                  id="plan-token-limit"
-                  value={newPlanData.token_limit}
-                  onChange={(e) => setNewPlanData({ ...newPlanData, token_limit: e.target.value })}
-                  className="col-span-3"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="plan-stt-seconds" className="text-right">
-                  STT (s)
-                </Label>
-                <Input
-                  id="plan-stt-seconds"
-                  value={newPlanData.stt_seconds}
-                  onChange={(e) => setNewPlanData({ ...newPlanData, stt_seconds: e.target.value })}
-                  className="col-span-3"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="plan-tts-seconds" className="text-right">
-                  TTS (s)
-                </Label>
-                <Input
-                  id="plan-tts-seconds"
-                  value={newPlanData.tts_seconds}
-                  onChange={(e) => setNewPlanData({ ...newPlanData, tts_seconds: e.target.value })}
-                  className="col-span-3"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="plan-docs-limit" className="text-right">
-                  Docs Limit
-                </Label>
-                <Input
-                  id="plan-docs-limit"
-                  value={newPlanData.docs_limit}
-                  onChange={(e) => setNewPlanData({ ...newPlanData, docs_limit: e.target.value })}
-                  className="col-span-3"
-                  required
-                />
-              </div>
-              <DialogFooter>
-                <Button type="submit">Add Plan</Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+  const renderBillingPlans = () => {
+    const getUsagePercentage = (used, limit) => {
+      if (limit === "Unlimited") return 0
+      return Math.round((used / limit) * 100)
+    }
 
-      <Card>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price/Month</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Query Limit</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Token Limit</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">STT (s)</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">TTS (s)</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Docs Limit</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {billingPlans.map((plan) => (
-                  <tr key={plan.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{plan.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${plan.price_monthly}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">{plan.description}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{plan.query_limit}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{plan.token_limit}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{plan.stt_seconds}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{plan.tts_seconds}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{plan.docs_limit}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div className="flex gap-2">
-                        <Dialog
-                          open={isEditPlanDialogOpen && editingPlanData?.id === plan.id}
-                          onOpenChange={setIsEditPlanDialogOpen}
-                        >
-                          <DialogTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setEditingPlanData(plan)
-                                setIsEditPlanDialogOpen(true)
-                              }}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="sm:max-w-[425px]">
-                            <DialogHeader>
-                              <DialogTitle>Edit Billing Plan</DialogTitle>
-                              <DialogDescription>{"Update the details for this billing plan."}</DialogDescription>
-                            </DialogHeader>
-                            <form onSubmit={handleEditPlan} className="grid gap-4 py-4">
-                              <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-plan-name" className="text-right">
-                                  Name
-                                </Label>
-                                <Input
-                                  id="edit-plan-name"
-                                  value={editingPlanData?.name || ""}
-                                  onChange={(e) => setEditingPlanData({ ...editingPlanData, name: e.target.value })}
-                                  className="col-span-3"
-                                  required
-                                />
-                              </div>
-                              <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-plan-price" className="text-right">
-                                  Price/Month
-                                </Label>
-                                <Input
-                                  id="edit-plan-price"
-                                  type="number"
-                                  value={editingPlanData?.price_monthly || 0}
-                                  onChange={(e) =>
-                                    setEditingPlanData({ ...editingPlanData, price_monthly: e.target.value })
-                                  }
-                                  className="col-span-3"
-                                  required
-                                />
-                              </div>
-                              <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-plan-description" className="text-right">
-                                  Description
-                                </Label>
-                                <Input
-                                  id="edit-plan-description"
-                                  value={editingPlanData?.description || ""}
-                                  onChange={(e) =>
-                                    setEditingPlanData({ ...editingPlanData, description: e.target.value })
-                                  }
-                                  className="col-span-3"
-                                  required
-                                />
-                              </div>
-                              <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-plan-query-limit" className="text-right">
-                                  Query Limit
-                                </Label>
-                                <Input
-                                  id="edit-plan-query-limit"
-                                  value={editingPlanData?.query_limit || ""}
-                                  onChange={(e) =>
-                                    setEditingPlanData({ ...editingPlanData, query_limit: e.target.value })
-                                  }
-                                  className="col-span-3"
-                                  required
-                                />
-                              </div>
-                              <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-plan-token-limit" className="text-right">
-                                  Token Limit
-                                </Label>
-                                <Input
-                                  id="edit-plan-token-limit"
-                                  value={editingPlanData?.token_limit || ""}
-                                  onChange={(e) =>
-                                    setEditingPlanData({ ...editingPlanData, token_limit: e.target.value })
-                                  }
-                                  className="col-span-3"
-                                  required
-                                />
-                              </div>
-                              <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-plan-stt-seconds" className="text-right">
-                                  STT (s)
-                                </Label>
-                                <Input
-                                  id="edit-plan-stt-seconds"
-                                  value={editingPlanData?.stt_seconds || ""}
-                                  onChange={(e) =>
-                                    setEditingPlanData({ ...editingPlanData, stt_seconds: e.target.value })
-                                  }
-                                  className="col-span-3"
-                                  required
-                                />
-                              </div>
-                              <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-plan-tts-seconds" className="text-right">
-                                  TTS (s)
-                                </Label>
-                                <Input
-                                  id="edit-plan-tts-seconds"
-                                  value={editingPlanData?.tts_seconds || ""}
-                                  onChange={(e) =>
-                                    setEditingPlanData({ ...editingPlanData, tts_seconds: e.target.value })
-                                  }
-                                  className="col-span-3"
-                                  required
-                                />
-                              </div>
-                              <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-plan-docs-limit" className="text-right">
-                                  Docs Limit
-                                </Label>
-                                <Input
-                                  id="edit-plan-docs-limit"
-                                  value={editingPlanData?.docs_limit || ""}
-                                  onChange={(e) =>
-                                    setEditingPlanData({ ...editingPlanData, docs_limit: e.target.value })
-                                  }
-                                  className="col-span-3"
-                                  required
-                                />
-                              </div>
-                              <DialogFooter>
-                                <Button type="submit">Save Changes</Button>
-                              </DialogFooter>
-                            </form>
-                          </DialogContent>
-                        </Dialog>
-                        <Button variant="outline" size="sm" onClick={() => handleDeletePlan(plan.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
+    const getUsageColor = (percentage) => {
+      if (percentage >= 90) return "text-red-600 bg-red-50"
+      if (percentage >= 75) return "text-yellow-600 bg-yellow-50"
+      return "text-green-600 bg-green-50"
+    }
+
+    const formatUsage = (used, limit) => {
+      if (limit === "Unlimited") return `${used.toLocaleString()} / ∞`
+      return `${used.toLocaleString()} / ${limit.toLocaleString()}`
+    }
+
+    const formatLastActive = (dateString) => {
+      const date = new Date(dateString)
+      const now = new Date()
+      const diffInHours = Math.floor((now - date) / (1000 * 60 * 60))
+
+      if (diffInHours < 1) return "Just now"
+      if (diffInHours < 24) return `${diffInHours}h ago`
+      return `${Math.floor(diffInHours / 24)}d ago`
+    }
+
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold">User Usage Monitoring</h2>
+          <div className="text-sm text-gray-500">Real-time usage tracking across all plans</div>
+        </div>
+
+        {/* Usage Summary Cards */}
+        <div className="grid md:grid-cols-4 gap-4 mb-6">
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-2xl font-bold text-blue-600">
+                {userUsageData.filter((u) => u.plan === "Basic").length}
+              </div>
+              <p className="text-sm text-gray-600">Basic Plan Users</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-2xl font-bold text-purple-600">
+                {userUsageData.filter((u) => u.plan === "Pro").length}
+              </div>
+              <p className="text-sm text-gray-600">Pro Plan Users</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-2xl font-bold text-green-600">
+                {userUsageData.filter((u) => u.plan === "Enterprise").length}
+              </div>
+              <p className="text-sm text-gray-600">Enterprise Users</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-2xl font-bold text-red-600">
+                {
+                  userUsageData.filter((u) => {
+                    const queryPerc = getUsagePercentage(u.queryUsed, u.queryLimit)
+                    const tokenPerc = getUsagePercentage(u.tokenUsed, u.tokenLimit)
+                    return queryPerc >= 90 || tokenPerc >= 90
+                  }).length
+                }
+              </div>
+              <p className="text-sm text-gray-600">High Usage Alerts</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Plan</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Queries (Daily)</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Tokens (Monthly)
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">STT (s)</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">TTS (s)</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Documents</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Active</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  )
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {userUsageData.map((user) => (
+                    <tr key={user.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                          <div className="text-sm text-gray-500">{user.user}</div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            user.plan === "Basic"
+                              ? "bg-blue-100 text-blue-800"
+                              : user.plan === "Pro"
+                                ? "bg-purple-100 text-purple-800"
+                                : "bg-green-100 text-green-800"
+                          }`}
+                        >
+                          {user.plan}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{formatUsage(user.queryUsed, user.queryLimit)}</div>
+                        {user.queryLimit !== "Unlimited" && (
+                          <div
+                            className={`text-xs px-2 py-1 rounded ${getUsageColor(getUsagePercentage(user.queryUsed, user.queryLimit))}`}
+                          >
+                            {getUsagePercentage(user.queryUsed, user.queryLimit)}% used
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{formatUsage(user.tokenUsed, user.tokenLimit)}</div>
+                        {user.tokenLimit !== "Unlimited" && (
+                          <div
+                            className={`text-xs px-2 py-1 rounded ${getUsageColor(getUsagePercentage(user.tokenUsed, user.tokenLimit))}`}
+                          >
+                            {getUsagePercentage(user.tokenUsed, user.tokenLimit)}% used
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{formatUsage(user.sttUsed, user.sttLimit)}</div>
+                        {user.sttLimit !== "Unlimited" && (
+                          <div
+                            className={`text-xs px-2 py-1 rounded ${getUsageColor(getUsagePercentage(user.sttUsed, user.sttLimit))}`}
+                          >
+                            {getUsagePercentage(user.sttUsed, user.sttLimit)}% used
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{formatUsage(user.ttsUsed, user.ttsLimit)}</div>
+                        {user.ttsLimit !== "Unlimited" && (
+                          <div
+                            className={`text-xs px-2 py-1 rounded ${getUsageColor(getUsagePercentage(user.ttsUsed, user.ttsLimit))}`}
+                          >
+                            {getUsagePercentage(user.ttsUsed, user.ttsLimit)}% used
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{formatUsage(user.docsUsed, user.docsLimit)}</div>
+                        {user.docsLimit !== "Unlimited" && (
+                          <div
+                            className={`text-xs px-2 py-1 rounded ${getUsageColor(getUsagePercentage(user.docsUsed, user.docsLimit))}`}
+                          >
+                            {getUsagePercentage(user.docsUsed, user.docsLimit)}% used
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {formatLastActive(user.lastActive)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   const renderAnalytics = () => (
     <div className="space-y-6">
