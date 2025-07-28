@@ -5,7 +5,18 @@ import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Users, Building, Settings, BarChart3, Plus, Edit, Trash2, DollarSign } from "lucide-react"
+import {
+  Users,
+  Building,
+  Settings,
+  BarChart3,
+  Plus,
+  Edit,
+  Trash2,
+  DollarSign,
+  KeyRound,
+  RefreshCcw,
+} from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -16,6 +27,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
+
+const API_BASE_URL = "http://172.17.180.124:8000" // Ensure this is consistent
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("tenants")
@@ -133,6 +146,11 @@ export default function AdminPage() {
     },
   ])
 
+  // --- State for API Key ---
+  const [apiKey, setApiKey] = useState(null)
+  const [isApiKeyLoading, setIsApiKeyLoading] = useState(false)
+  const [apiKeyError, setApiKeyError] = useState(null)
+
   useEffect(() => {
     const isAuthenticated = localStorage.getItem("isAuthenticated")
     const userRole = localStorage.getItem("userRole")
@@ -153,6 +171,47 @@ export default function AdminPage() {
       role: userRole,
     })
   }, [router])
+
+  // Effect to fetch API key when settings tab is active and user is admin
+  useEffect(() => {
+    const fetchApiKey = async () => {
+      if (activeTab === "settings" && user?.role === "admin") {
+        setIsApiKeyLoading(true)
+        setApiKeyError(null)
+        try {
+          const accessToken = localStorage.getItem("accessToken")
+          if (!accessToken) {
+            setApiKeyError("No access token found. Please log in again.")
+            setIsApiKeyLoading(false)
+            return
+          }
+
+          const response = await fetch(`${API_BASE_URL}/auth/admin/join-code`, {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              Accept: "application/json",
+            },
+          })
+
+          if (!response.ok) {
+            const errorData = await response.json()
+            throw new Error(errorData.detail || "Failed to fetch API key.")
+          }
+
+          const data = await response.json()
+          setApiKey(data.join_code_hash) // Assuming the response is directly the string API key
+        } catch (err) {
+          console.error("Error fetching API key:", err)
+          setApiKeyError(err.message || "An unexpected error occurred while fetching API key.")
+        } finally {
+          setIsApiKeyLoading(false)
+        }
+      }
+    }
+
+    fetchApiKey()
+  }, [activeTab, user]) // Re-run when activeTab or user changes
 
   // --- User Management Functions ---
   const handleAddUser = (e) => {
@@ -833,6 +892,88 @@ export default function AdminPage() {
                 <option>2 hours</option>
               </select>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* New API Key Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5" />
+              API Key (Join Code)
+            </CardTitle>
+            <CardDescription>Retrieve the system-wide join code for new registrations.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {isApiKeyLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                <p className="ml-3 text-gray-600">Loading API Key...</p>
+              </div>
+            ) : apiKeyError ? (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+                <p className="text-sm">{apiKeyError}</p>
+              </div>
+            ) : apiKey ? (
+              <div className="flex items-center space-x-2">
+                <Input type="text" value={apiKey} readOnly className="flex-grow font-mono" />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigator.clipboard.writeText(apiKey)}
+                  title="Copy API Key"
+                >
+                  Copy
+                </Button>
+              </div>
+            ) : (
+              <p className="text-gray-500 text-sm">API Key not available. Click refresh to fetch.</p>
+            )}
+            <Button
+              onClick={() => {
+                // Manually trigger fetchApiKey
+                const fetchApiKey = async () => {
+                  setIsApiKeyLoading(true)
+                  setApiKeyError(null)
+                  try {
+                    const accessToken = localStorage.getItem("accessToken")
+                    if (!accessToken) {
+                      setApiKeyError("No access token found. Please log in again.")
+                      setIsApiKeyLoading(false)
+                      return
+                    }
+
+                    const response = await fetch(`${API_BASE_URL}/auth/admin/join-code`, {
+                      method: "GET",
+                      headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                        Accept: "application/json",
+                      },
+                    })
+
+                    if (!response.ok) {
+                      const errorData = await response.json()
+                      throw new Error(errorData.detail || "Failed to fetch API key.")
+                    }
+
+                    const data = await response.json()
+                    // Display the API key
+                    console.log("Fetched API Key:", data)
+                    setApiKey(data.join_code_hash)
+                  } catch (err) {
+                    console.error("Error fetching API key:", err)
+                    setApiKeyError(err.message || "An unexpected error occurred while fetching API key.")
+                  } finally {
+                    setIsApiKeyLoading(false)
+                  }
+                }
+                fetchApiKey()
+              }}
+              disabled={isApiKeyLoading}
+            >
+              <RefreshCcw className="h-4 w-4 mr-2" />
+              Refresh API Key
+            </Button>
           </CardContent>
         </Card>
       </div>

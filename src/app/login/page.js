@@ -6,32 +6,86 @@ import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { AlertCircle } from "lucide-react"
+
+const API_BASE_URL = "http://172.17.180.124:8000"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState(null)
   const router = useRouter()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
+    setError(null) // Clear previous errors
 
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    try {
+      // Step 1: Attempt to log in
+      const loginResponse = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      })
 
-    // Accept any email/password combination
-    if (email && password) {
-      // Store mock auth state
+      const loginData = await loginResponse.json()
+
+      if (!loginResponse.ok) {
+        // Handle login API error
+        if (loginData.detail) {
+          if (Array.isArray(loginData.detail)) {
+            setError(loginData.detail.map((err) => `${err.msg} (${err.loc.join(".")})`).join(", "))
+          } else {
+            setError(loginData.detail)
+          }
+        } else {
+          setError("Login failed. Please check your credentials.")
+        }
+        return
+      }
+
+      // Successful login: Store access token
+      const accessToken = loginData.access_token
       localStorage.setItem("isAuthenticated", "true")
       localStorage.setItem("userEmail", email)
-      localStorage.setItem("userRole", email.includes("admin") ? "admin" : "user")
+      localStorage.setItem("accessToken", accessToken)
+
+      // Step 2: Call /auth/is_admin to check admin status
+      const adminCheckResponse = await fetch(`${API_BASE_URL}/auth/is_admin`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${accessToken}`, // Pass the access token
+          Accept: "application/json", // Ensure we accept JSON response
+        },
+      })
+
+      let userRole = "user" // Default role
+      if (adminCheckResponse.ok) {
+        const adminData = await adminCheckResponse.json() // Assuming it returns an object like { is_admin: true }
+        console.log("Admin check response:", adminData) // For debugging
+        if (adminData && adminData.is_admin === true) {
+          // Correctly check the 'is_admin' property
+          userRole = "admin"
+        }
+      } else {
+        console.warn("Failed to check admin status:", adminCheckResponse.status, adminCheckResponse.statusText)
+        // Optionally handle specific errors for admin check, but for now, default to 'user'
+      }
+
+      localStorage.setItem("userRole", userRole)
 
       // Redirect to dashboard
       router.push("/dashboard")
+    } catch (err) {
+      console.error("Login process error:", err)
+      setError("An unexpected error occurred during login. Please try again.")
+    } finally {
+      setIsLoading(false)
     }
-
-    setIsLoading(false)
   }
 
   return (
@@ -71,6 +125,13 @@ export default function LoginPage() {
               />
             </div>
 
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md flex items-start">
+                <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
+                <span className="text-sm">{error}</span>
+              </div>
+            )}
+
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
@@ -78,16 +139,10 @@ export default function LoginPage() {
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-               Don&apos;t have an account?{" "}
+              {"Don't have an account?"}{" "}
               <Link href="/signup" className="text-blue-600 hover:underline">
                 Sign up
               </Link>
-            </p>
-          </div>
-
-          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-            <p className="text-sm text-yellow-800">
-              <strong>Demo:</strong> Use any email/password. Include &quot;admin&quot; in email for admin access.
             </p>
           </div>
         </CardContent>
