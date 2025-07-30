@@ -6,6 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
+const API_BASE_URL = "http://172.17.180.124:8000"
+const WS_BASE_URL = "ws://172.17.180.124:8000"
+
 // SVG Icons for all controls
 const PhoneIcon = ({ className }) => (
   <svg
@@ -155,6 +158,7 @@ const EndCallIcon = ({ className }) => (
   </svg>
 )
 
+
 export default function CallSimulationPage() {
   const [isCallActive, setIsCallActive] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
@@ -162,21 +166,314 @@ export default function CallSimulationPage() {
   const [isRecordingCall, setIsRecordingCall] = useState(false)
   const [conversation, setConversation] = useState([])
   const [callDuration, setCallDuration] = useState(0)
+  // to turn RAG on/off
+  const [ragEnabled, setRagEnabled] = useState(true);
   const [callStatus, setCallStatus] = useState("Connecting...")
   const callIntervalRef = useRef(null)
   const conversationIntervalRef = useRef(null)
   const router = useRouter()
 
+  // Debugging: message log
+  const [messageLog, setMessageLog] = useState([]);
+  const logMessage = (direction, message) => {
+    setMessageLog(prev => [...prev, {
+      timestamp: new Date().toISOString(),
+      direction,
+      message: JSON.stringify(message, null, 2)
+    }].slice(-20)); // Keep last 20 messages
+  };
+
   // New state for text chat
   const [textMessage, setTextMessage] = useState("")
   const [isTyping, setIsTyping] = useState(false)
+  const [sessionId, setSessionId] = useState(null)
 
-  useEffect(() => {
-    const isAuthenticated = localStorage.getItem("isAuthenticated")
-    if (!isAuthenticated) {
-      router.push("/login")
+  // WebSocket state
+  const [websocket, setWebsocket] = useState(null)
+  const [wsConnected, setWsConnected] = useState(false)
+  // Removed tenantId and userId state
+  // Track last sent query_id for matching responses
+  const [lastQueryId, setLastQueryId] = useState(null);
+
+  // Reconnect attempts state
+  const [reconnectAttempts, setReconnectAttempts] = useState(0)
+  const [retryCount, setRetryCount] = useState(0)
+
+  // token state (read from localStorage)
+  const [token, setToken] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("accessToken") || "";
     }
-  }, [router])
+    return "";
+  });
+
+// Ensure authentication and session ID are set before WebSocket connection
+useEffect(() => {
+  const isAuthenticated = localStorage.getItem("isAuthenticated");
+  if (!isAuthenticated) {
+    router.push("/login");
+    return;
+  }
+  const accessToken = localStorage.getItem("accessToken") || "";
+  setToken(accessToken);
+  setSessionId(`session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+
+  // Fetch user info and connect WebSocket using tenant_id and id directly
+  async function fetchUserInfoAndConnect() {
+    try {
+      const resp = await fetch(`${API_BASE_URL}/auth/user`, {
+        method: "GET",
+        headers: {
+          "accept": "application/json",
+          "Authorization": `Bearer ${accessToken}`
+        }
+      });
+      if (!resp.ok) {
+        throw new Error("Failed to fetch user info: " + resp.status);
+      }
+      const data = await resp.json();
+      console.log("Fetched user info:", data);
+      connectWebSocket(data.tenant_id, data.id);
+    } catch (err) {
+      console.error("❌ Error fetching user info:", err);
+      // Optionally redirect to login or show error
+    }
+  }
+  if (accessToken) {
+    fetchUserInfoAndConnect();
+  }
+}, [router]);
+
+  // Change WebSocket useEffect to always maintain connection
+  useEffect(() => {
+    // WebSocket connection now handled after fetching user info
+    return () => {
+      if (websocket) {
+        disconnectWebSocket();
+      }
+    };
+  }, [token, sessionId]);
+
+  // WebSocket connection now uses tenant_id and id directly
+  const connectWebSocket = (tenantId, userId) => {
+    try {
+      const wsUrl = `${WS_BASE_URL}/ws/${tenantId}/${userId}`;
+      console.log(`🔗 Connecting to ${wsUrl}`);
+      const ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        console.log("✅ WebSocket connected");
+        setWsConnected(true);
+        setWebsocket(ws);
+        setReconnectAttempts(0);
+        ws.send(JSON.stringify({ type: "ping" }));
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log("📨 WebSocket Message:", data);
+
+          if (data.type === "text_response") {
+            console.log("✅ Got text response:", data.response);
+          }
+
+          if (typeof data === 'object' && data !== null && 'type' in data) {
+            handleWebSocketMessage(data);
+          } else {
+            console.warn("⚠️ Received message without type:", data);
+          }
+        } catch (error) {
+          console.error("❌ Error parsing WebSocket message:", error);
+          console.error("Raw message:", event.data);
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error("❌ WebSocket error:", error);
+        setWsConnected(false);
+      };
+
+      ws.onclose = (event) => {
+        console.log("🔌 WebSocket connection closed:", event.code, event.reason);
+        setWsConnected(false);
+        setWebsocket(null);
+
+        if (reconnectAttempts < 3 && event.code !== 1000) {
+          setTimeout(() => {
+            console.log(`🔄 Attempting to reconnect... (${reconnectAttempts + 1}/3)`);
+            setReconnectAttempts(prev => prev + 1);
+            connectWebSocket(tenantId, userId);
+          }, 2000 * (reconnectAttempts + 1));
+        }
+      };
+
+    } catch (error) {
+      console.error("❌ Failed to create WebSocket connection:", error);
+      setWsConnected(false);
+    }
+  };
+
+  const disconnectWebSocket = () => {
+    if (websocket) {
+      // Stop continuous conversation mode
+      const stopMessage = { type: "stop_continuous_conversation" }
+      websocket.send(JSON.stringify(stopMessage))
+
+      websocket.close()
+      setWebsocket(null)
+      setWsConnected(false)
+    }
+  }
+
+  const handleWebSocketMessage = (data) => {
+    const messageType = data.type || "unknown";
+    console.log("🔍 Received WebSocket message:", messageType, data);
+
+    // Display all incoming responses regardless of query_id
+    if (
+      messageType === "query_result" ||
+      messageType === "text_response" ||
+      messageType === "query_with_tts_result"
+    ) {
+      // console.log("Incoming response ID:", data.query_id, "Last sent query ID:", lastQueryId);
+      // if (!data.query_id || data.query_id !== lastQueryId) {
+      //   console.warn("⚠️ Received response for a different query_id. Ignoring.");
+      //   return;
+      // }
+
+      const responseText = data.response || data.message || "";
+      console.log(`✅ Got matching response (${messageType}):`, responseText);
+
+      // Clear timeout
+      if (window.currentResponseTimeout) {
+        clearTimeout(window.currentResponseTimeout);
+        window.currentResponseTimeout = null;
+      }
+
+      const botMessage = {
+        type: "bot",
+        message: responseText,
+        timestamp: new Date(),
+        isText: true,
+        queryId: data.query_id || "",
+        rag: data.rag !== false,
+      };
+      setConversation((prev) => [...prev, botMessage]);
+      setIsTyping(false);
+      return;
+    }
+
+    // Handle all other message types
+    switch (messageType) {
+      case "ping":
+        console.log("🏓 Ping received - sending pong");
+        if (websocket) {
+          websocket.send(JSON.stringify({ type: "pong" }));
+        }
+        break;
+
+      case "speech_detected": {
+        const transcript = data.transcript || "";
+        const duration = data.duration || 0.0;
+        if (transcript && transcript.trim().length > 2) {
+          console.log(`🗣️ Speech detected (${duration.toFixed(1)}s): '${transcript}'`);
+        }
+        break;
+      }
+
+      case "transcription_result": {
+        const transcriptResult = data.transcript || "";
+        const confidence = data.confidence || 0.0;
+        const processingTime = data.processing_time || 0.0;
+        if (transcriptResult.trim()) {
+          console.log(`📝 Transcription: ${transcriptResult} (${processingTime.toFixed(2)}s)`);
+          const transcriptionMessage = {
+            type: "user",
+            message: transcriptResult,
+            timestamp: new Date(),
+            isText: false,
+          };
+          setConversation((prev) => [...prev, transcriptionMessage]);
+        }
+        break;
+      }
+
+      case "health_check":
+        console.log("🫀 Health check received");
+        if (websocket) {
+          websocket.send(JSON.stringify({ type: "health_check_ack" }));
+        }
+        break;
+
+      case "query_with_tts_submitted":
+        console.log("Query submitted:", data.query_id);
+        console.log(`🔄 Processing query ${data.query_id ? data.query_id.substring(0, 8) : ''}...`);
+        break;
+
+      case "query_processing":
+        console.log("Processing query:", data.query_id);
+        break;
+
+      case "tts_processing":
+        console.log("Generating TTS for:", data.query_id);
+        break;
+
+      case "transcription_submitted":
+        console.log(`📝 Transcribing at ${new Date().toLocaleTimeString()}`);
+        break;
+
+      case "tts_audio_chunk":
+        console.log("🔊 TTS audio chunk received");
+        break;
+
+      case "continuous_conversation_started":
+        console.log("✅ Continuous conversation mode started");
+        break;
+
+      case "continuous_conversation_stopped":
+        console.log("🔄 Continuous conversation mode stopped");
+        break;
+
+      case "audio_status": {
+        const status = data.status || "N/A";
+        if (status === "ready") {
+          console.log("🔊 TTS Ready");
+        } else if (status === "generating") {
+          console.log("🔄 TTS Generating...");
+        } else if (status === "streaming") {
+          console.log("🎵 TTS Streaming audio...");
+        }
+        break;
+      }
+
+      case "error": {
+        const errorMsg = typeof data === "string" ? data : data.message || "Unknown error";
+        console.error(`❌ WebSocket Error: ${errorMsg}`);
+        if (window.currentResponseTimeout) {
+          clearTimeout(window.currentResponseTimeout);
+          window.currentResponseTimeout = null;
+        }
+        const errorMessage = {
+          type: "bot",
+          message: `Error: ${errorMsg}`,
+          timestamp: new Date(),
+          isText: true,
+        };
+        setConversation((prev) => [...prev, errorMessage]);
+        setIsTyping(false);
+        break;
+      }
+
+      case "pong":
+        console.log("🏓 Pong received");
+        break;
+
+      default:
+        console.warn("⚠️ Unhandled message type:", messageType, data);
+        break;
+    }
+  }
 
   // Effect for call duration timer
   useEffect(() => {
@@ -191,10 +488,9 @@ export default function CallSimulationPage() {
     return () => clearInterval(callIntervalRef.current)
   }, [isCallActive])
 
-  // Effect for automatic conversation flow
+  // Effect for initial bot message
   useEffect(() => {
     if (isCallActive) {
-      // Initial bot message
       setTimeout(() => {
         setCallStatus("Connected")
         setConversation([
@@ -206,11 +502,6 @@ export default function CallSimulationPage() {
           },
         ])
       }, 2000)
-
-      // Simulate ongoing conversation
-      conversationIntervalRef.current = setInterval(() => {
-        simulateConversationExchange()
-      }, 8000) // New exchange every 8 seconds
     } else {
       clearInterval(conversationIntervalRef.current)
       setConversation([])
@@ -219,79 +510,116 @@ export default function CallSimulationPage() {
     return () => clearInterval(conversationIntervalRef.current)
   }, [isCallActive])
 
-  const simulateConversationExchange = () => {
-    const mockUserQuestions = [
-      "What are your business hours?",
-      "How do I reset my password?",
-      "Can you help me with billing questions?",
-      "What services do you offer?",
-      "How do I contact support?",
-      "Is there a mobile app available?",
-      "What are your pricing plans?",
-      "How do I cancel my subscription?",
-    ]
+  // Updated submitTextQuery function with better error handling
+  const submitTextQuery = async (query) => {
+    if (!query.trim()) {
+      console.error("❌ Query cannot be empty");
+      return;
+    }
 
-    const mockBotResponses = [
-      "Our business hours are Monday to Friday, 9 AM to 6 PM EST.",
-      "To reset your password, please click on the 'Forgot Password' link on the login page.",
-      "I can help you with billing questions. Please provide your account number.",
-      "We offer AI-powered voice assistants, document processing, and customer support automation.",
-      "You can contact our support team at support@genesys.com or through the chat widget.",
-      "Yes, we have mobile apps available for both iOS and Android devices.",
-      "We offer three pricing tiers: Basic ($29/month), Professional ($79/month), and Enterprise (custom pricing).",
-      "You can cancel your subscription anytime from your account settings or by contacting support.",
-    ]
-
-    // Add user message
-    const userMessage = mockUserQuestions[Math.floor(Math.random() * mockUserQuestions.length)]
-    setConversation((prev) => [...prev, { type: "user", message: userMessage, timestamp: new Date(), isText: false }])
-
-    // Add bot response after delay
-    setTimeout(() => {
-      const botResponse = mockBotResponses[Math.floor(Math.random() * mockBotResponses.length)]
-      setConversation((prev) => [...prev, { type: "bot", message: botResponse, timestamp: new Date(), isText: false }])
-    }, 2000)
-  }
-
-  // New function for handling text messages
-  const handleSendTextMessage = async (e) => {
-    e.preventDefault()
-    if (!textMessage.trim()) return
+    if (!token) {
+      console.error("❌ No authentication token available");
+      const errorMessage = {
+        type: "bot",
+        message: "Authentication error: Please log in again",
+        timestamp: new Date(),
+        isText: true,
+      };
+      setConversation((prev) => [...prev, errorMessage]);
+      return;
+    }
 
     // Add user message to conversation
     const userMessage = {
       type: "user",
-      message: textMessage,
+      message: query,
       timestamp: new Date(),
       isText: true,
-    }
-    setConversation((prev) => [...prev, userMessage])
-    setTextMessage("")
-    setIsTyping(true)
+    };
+    setConversation((prev) => [...prev, userMessage]);
+    setIsTyping(true);
 
-    // Simulate AI response delay
-    setTimeout(() => {
-      const aiResponses = [
-        "I understand your question. Let me help you with that.",
-        "That's a great point! Here's what I can tell you about that topic.",
-        "I'm here to assist you. Could you provide more details?",
-        "Based on your message, I recommend the following approach.",
-        "Thank you for reaching out. I'm processing your request now.",
-        "I can help you with that. Let me provide you with the information you need.",
-        "That's an interesting question. Here's my response based on our knowledge base.",
-        "I'm glad you asked! This is something I can definitely help you with.",
-      ]
+    try {
+      // Fetch user info for tenant_id and user_id before sending query
+      const resp = await fetch(`${API_BASE_URL}/auth/user`, {
+        method: "GET",
+        headers: {
+          "accept": "application/json",
+          "Authorization": `Bearer ${token}`
+        }
+      });
+      if (!resp.ok) {
+        throw new Error("Failed to fetch user info: " + resp.status);
+      }
+      const userData = await resp.json();
 
-      const aiResponse = {
+      const payload = {
+        tenant_id: userData.tenant_id,
+        user_id: userData.id,
+        query,
+        use_rag: true
+      };
+
+      const response = await fetch(`${API_BASE_URL}/query/submit`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        let errorMsg = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMsg = errorData.message || errorMsg;
+        } catch (e) {
+          // Use default error message if can't parse response
+        }
+        throw new Error(errorMsg);
+      }
+
+      const data = await response.json();
+      setLastQueryId(data.query_id);
+      console.log("Sent query with ID:", data.query_id);
+
+      window.currentResponseTimeout = setTimeout(() => {
+        console.warn("⏰ No WebSocket response received within 30 seconds");
+        setIsTyping(false);
+
+        const timeoutMessage = {
+          type: "bot",
+          message: "Sorry, I didn't receive a response. Please try your message again.",
+          timestamp: new Date(),
+          isText: true,
+        };
+        setConversation((prev) => [...prev, timeoutMessage]);
+        window.currentResponseTimeout = null;
+      }, 30000);
+
+    } catch (error) {
+      console.error("❌ Error submitting query:", error);
+      setIsTyping(false);
+
+      const errorMessage = {
         type: "bot",
-        message: aiResponses[Math.floor(Math.random() * aiResponses.length)],
+        message: `Error: ${error.message}`,
         timestamp: new Date(),
         isText: true,
-      }
-      setConversation((prev) => [...prev, aiResponse])
-      setIsTyping(false)
-    }, 1500)
-  }
+      };
+      setConversation((prev) => [...prev, errorMessage]);
+    }
+  };
+
+  // Updated send message handler to use the new submitTextQuery function
+  const handleSendTextMessage = async (e) => {
+    e.preventDefault();
+    if (!textMessage.trim() || isTyping) return;
+
+    await submitTextQuery(textMessage.trim());
+    setTextMessage("");
+  };
 
   const formatDuration = (seconds) => {
     const minutes = Math.floor(seconds / 60)
@@ -299,9 +627,21 @@ export default function CallSimulationPage() {
     return `${minutes.toString().padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`
   }
 
+  // Modify startCall to only send continuous conversation when needed
   const startCall = () => {
-    setIsCallActive(true)
-    setCallStatus("Connecting...")
+    setIsCallActive(true);
+    setCallStatus("Connecting...");
+
+    if (websocket) {
+      const startMessage = {
+        type: "start_continuous_conversation",
+        tts_language: "en",
+        voice: "en-US-JennyNeural",
+        auto_respond: true,
+        rag: ragEnabled
+      };
+      websocket.send(JSON.stringify(startMessage));
+    }
   }
 
   const endCall = () => {
@@ -329,6 +669,12 @@ export default function CallSimulationPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Call Simulation</h1>
         <p className="text-gray-600">Experience a realistic voice call with AI assistant</p>
+        {wsConnected && (
+          <div className="mt-2 flex items-center text-sm text-green-600">
+            <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+            WebSocket Connected
+          </div>
+        )}
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
@@ -430,6 +776,10 @@ export default function CallSimulationPage() {
                       {isMuted && <span className="text-red-600">🔇 Muted</span>}
                       {isSpeakerOn && <span className="text-blue-600">🔊 Speaker On</span>}
                       {isRecordingCall && <span className="text-red-600">⏺ Recording Call</span>}
+                      {wsConnected && <span className="text-green-600">🔗 Connected</span>}
+                      <span className={ragEnabled ? "text-green-600" : "text-gray-500"}>
+                        RAG {ragEnabled ? "✓" : "✗"}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -440,17 +790,32 @@ export default function CallSimulationPage() {
 
         {/* Enhanced Conversation History with Text Chat */}
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2">
               <SpeakerOnIcon className="h-5 w-5" />
               Live Transcript & Chat
             </CardTitle>
             <CardDescription>Real-time conversation transcript and text messaging</CardDescription>
+            <div>
+              <div className="flex flex-row items-center">
+                <label className="block text-sm font-medium mb-2 mr-2">RAG Processing</label>
+                <button
+                  onClick={() => setRagEnabled(!ragEnabled)}
+                  className={`relative inline-flex h-5 w-11 bottom-[1.5px] items-center rounded-full gap-2 ${ragEnabled ? "bg-blue-500" : "bg-gray-300"
+                    }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${ragEnabled ? "translate-x-6" : "translate-x-1"
+                      }`}
+                  />
+                </button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col h-96">
               {/* Chat Messages */}
-              <div className="flex-1 space-y-4 overflow-y-auto p-4 bg-gray-50 rounded-t-lg">
+              <div className="flex-1 space-y-1 overflow-y-auto p-4 bg-gray-50 rounded-t-lg">
                 {conversation.length === 0 ? (
                   <p className="text-gray-500 text-center py-8">
                     {isCallActive ? "Conversation will appear here..." : "Start a call or send a message to begin"}
@@ -459,11 +824,10 @@ export default function CallSimulationPage() {
                   conversation.map((message, index) => (
                     <div key={index} className={`flex ${message.type === "user" ? "justify-end" : "justify-start"}`}>
                       <div
-                        className={`max-w-xs px-4 py-2 rounded-lg text-sm ${
-                          message.type === "user"
-                            ? "bg-blue-500 text-white rounded-br-none"
-                            : "bg-white text-gray-900 border rounded-bl-none shadow-sm"
-                        }`}
+                        className={`max-w-xs px-4 py-2 rounded-lg text-sm ${message.type === "user"
+                          ? "bg-blue-500 text-white rounded-br-none"
+                          : "bg-white text-gray-900 border rounded-bl-none shadow-sm"
+                          }`}
                       >
                         <p>{message.message}</p>
                         <div className="flex items-center justify-between mt-1">
@@ -478,6 +842,18 @@ export default function CallSimulationPage() {
                             </span>
                           )}
                         </div>
+                        {message.queryId && (
+                          <p className="text-xs text-gray-400 mt-1">
+                            Query ID: {message.queryId}
+                            {/* <span className={`ml-2 ${ragEnabled ? "text-green-600" : "text-gray-500"}`}> RAG {ragEnabled ? "✓" : "✗"} </span> */}
+                            {message.rag !== false && (
+                              <span className="ml-2 text-green-500">RAG ✓</span>
+                            )}
+                            {message.rag === false && (
+                              <span className="ml-2 text-gray-500">RAG ✗</span>
+                            )}
+                          </p>
+                        )}
                       </div>
                     </div>
                   ))
@@ -517,9 +893,15 @@ export default function CallSimulationPage() {
                     disabled={!textMessage.trim() || isTyping}
                     className="px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    Send
+                    {isTyping ? "..." : "Send"}
                   </button>
+
                 </form>
+                {!wsConnected && (
+                  <p className="text-xs text-red-500 mt-2 text-center">
+                    WebSocket disconnected - Start a call to reconnect
+                  </p>
+                )}
               </div>
             </div>
           </CardContent>
@@ -566,6 +948,7 @@ export default function CallSimulationPage() {
                 <option>M4A</option>
               </select>
             </div>
+
           </div>
         </CardContent>
       </Card>
