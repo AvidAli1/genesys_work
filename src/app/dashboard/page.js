@@ -19,7 +19,9 @@ export default function DashboardPage() {
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState(null)
   const [uploadSuccess, setUploadSuccess] = useState(false)
-  const [visibilityUpdating, setVisibilityUpdating] = useState(null) // Stores identifier of doc being updated
+  const [uploadVisibility, setUploadVisibility] = useState(false)
+  const [fetchingDocs, setFetchingDocs] = useState(false)
+  const [fetchError, setFetchError] = useState(null)
 
   useEffect(() => {
     const isAuthenticated = localStorage.getItem("isAuthenticated")
@@ -34,36 +36,60 @@ export default function DashboardPage() {
       role: localStorage.getItem("userRole") || "user",
     })
 
-    fetchDocuments() // Fetch documents on component mount
+    fetchDocuments()
   }, [router])
 
   const fetchDocuments = async () => {
     const accessToken = localStorage.getItem("accessToken")
     if (!accessToken) {
       console.error("No access token found. Cannot fetch documents.")
-      // Optionally redirect to login or show a message
+      setFetchError("No access token found. Please log in again.")
       return
     }
 
+    setFetchingDocs(true)
+    setFetchError(null)
+
     try {
+      console.log("Fetching documents from:", `${API_BASE_URL}/documents/`)
+
       const response = await fetch(`${API_BASE_URL}/documents/`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
       })
 
+      console.log("Response status:", response.status)
+
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.detail || "Failed to fetch documents.")
+        throw new Error(errorData.detail || `HTTP ${response.status}: Failed to fetch documents.`)
       }
 
       const data = await response.json()
-      // Assuming data is an array of document objects like:
-      // [{ identifier: "doc1", name: "Document 1.pdf", is_public: true, uploaded_at: "..." }]
-      setDocuments(data)
+      console.log("Fetched documents data:", data)
+
+      // Handle different possible response formats
+      let documentsArray = []
+      if (Array.isArray(data)) {
+        documentsArray = data
+      } else if (data.documents && Array.isArray(data.documents)) {
+        documentsArray = data.documents
+      } else if (data.data && Array.isArray(data.data)) {
+        documentsArray = data.data
+      } else {
+        console.warn("Unexpected response format:", data)
+        documentsArray = []
+      }
+
+      console.log("Processed documents array:", documentsArray)
+      setDocuments(documentsArray)
+
     } catch (error) {
       console.error("Error fetching documents:", error)
-      // You might want to set a state to display this error to the user
+      setFetchError(`Failed to load documents: ${error.message}`)
+    } finally {
+      setFetchingDocs(false)
     }
   }
 
@@ -75,10 +101,6 @@ export default function DashboardPage() {
     setUploadError(null)
     setUploadSuccess(false)
 
-    const formData = new FormData()
-    formData.append("file", file)
-    formData.append("is_public", "false") // Default to private on upload
-
     const accessToken = localStorage.getItem("accessToken")
     if (!accessToken) {
       setUploadError("Not authenticated. Please log in.")
@@ -87,11 +109,15 @@ export default function DashboardPage() {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/documents/upload`, {
+      const formData = new FormData()
+      formData.append("file", file)
+
+      console.log("Uploading document with visibility:", uploadVisibility)
+
+      const response = await fetch(`${API_BASE_URL}/documents/upload?is_public=${uploadVisibility}`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          // "Content-Type": "multipart/form-data" is automatically set by browser for FormData
         },
         body: formData,
       })
@@ -101,53 +127,21 @@ export default function DashboardPage() {
         throw new Error(errorData.detail || "Failed to upload document.")
       }
 
+      const result = await response.json()
+      console.log("Upload result:", result)
+
       setUploadSuccess(true)
-      setTimeout(() => setUploadSuccess(false), 3000) // Hide success message after 3 seconds
-      fetchDocuments() // Refresh the list of documents
+      setTimeout(() => setUploadSuccess(false), 3000)
+
+      // Refresh the documents list
+      await fetchDocuments()
+
     } catch (error) {
       console.error("Error uploading document:", error)
       setUploadError(error.message || "An unexpected error occurred during upload.")
     } finally {
       setUploading(false)
-      // Clear file input after upload attempt
       event.target.value = null
-    }
-  }
-
-  const handleToggleVisibility = async (identifier, currentVisibility) => {
-    const newVisibility = !currentVisibility
-    setVisibilityUpdating(identifier) // Set loading state for this specific document
-
-    const accessToken = localStorage.getItem("accessToken")
-    if (!accessToken) {
-      console.error("No access token found. Cannot update visibility.")
-      setVisibilityUpdating(null)
-      return
-    }
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/documents/${identifier}/visibility?is_public=${newVisibility}`, {
-        method: "PUT", // Assuming PUT based on the API spec for updating visibility
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json", // Even if no body, good practice
-        },
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || "Failed to update document visibility.")
-      }
-
-      // Update the local state to reflect the change immediately
-      setDocuments((prevDocs) =>
-        prevDocs.map((doc) => (doc.identifier === identifier ? { ...doc, is_public: newVisibility } : doc)),
-      )
-    } catch (error) {
-      console.error("Error updating visibility:", error)
-      // You might want to display this error to the user
-    } finally {
-      setVisibilityUpdating(null) // Clear loading state
     }
   }
 
@@ -156,6 +150,7 @@ export default function DashboardPage() {
     localStorage.removeItem("userEmail")
     localStorage.removeItem("userName")
     localStorage.removeItem("userRole")
+    localStorage.removeItem("accessToken")
     router.push("/login")
   }
 
@@ -168,7 +163,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto p-6">
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
@@ -262,33 +257,86 @@ export default function DashboardPage() {
               </div>
             )}
 
+            {/* Documents List */}
             <div className="space-y-2">
-              {documents.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">No documents uploaded yet.</p>
+              <div className="flex justify-between items-center">
+                <h3 className="text-sm font-medium">Your Documents</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={fetchDocuments}
+                  disabled={fetchingDocs}
+                >
+                  {fetchingDocs ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Refresh"
+                  )}
+                </Button>
+              </div>
+
+              {fetchError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+                  <span className="text-sm">{fetchError}</span>
+                </div>
+              )}
+
+              {fetchingDocs ? (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              ) : documents.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">
+                  {fetchError ? "Unable to load documents." : "No documents uploaded yet."}
+                </p>
               ) : (
-                documents.map((doc) => (
-                  <div key={doc.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                    <span className="text-sm">{doc.name}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500">{doc.is_public ? "Public" : "Private"}</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleToggleVisibility(doc.id, doc.is_public)}
-                        disabled={visibilityUpdating === doc.id}
-                        title={doc.is_public ? "Make Private" : "Make Public"}
-                      >
-                        {visibilityUpdating === doc.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : doc.is_public ? (
-                          <Eye className="h-4 w-4 text-blue-600" />
-                        ) : (
-                          <EyeOff className="h-4 w-4 text-gray-500" />
+                documents.map((doc, index) => {
+                  // Use the actual document structure from your API
+                  const documentId = doc.id || `doc-${index}`
+                  const documentName = doc.filename || `Document ${index + 1}`
+                  const isPublic = doc.is_public !== undefined ? doc.is_public : false
+                  const uploadedAt = doc.uploaded // This matches your API response
+                  const fileSize = doc.size
+                  const fileType = doc.filetype
+                  const status = doc.status
+
+                  return (
+                    <div key={documentId} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">{documentName}</span>
+                          {fileType && (
+                            <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700">
+                              {fileType.toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+                        {uploadedAt && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Uploaded: {new Date(uploadedAt).toLocaleDateString()} •
+                            {fileSize && ` ${(fileSize / 1024 / 1024).toFixed(2)} MB`}
+                            {status && ` • ${status.charAt(0).toUpperCase() + status.slice(1)}`}
+                          </p>
                         )}
-                      </Button>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={`text-xs px-2 py-1 rounded-full ${isPublic
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-gray-200 text-gray-700'
+                          }`}>
+                          {isPublic ? "Public" : "Private"}
+                        </span>
+                        <div title={isPublic ? "Public Document - Visible to all users" : "Private Document - Only visible to you"}>
+                          {isPublic ? (
+                            <Eye className="h-4 w-4 text-green-600" />
+                          ) : (
+                            <EyeOff className="h-4 w-4 text-gray-500" />
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  )
+                })
               )}
             </div>
           </CardContent>
@@ -317,7 +365,7 @@ export default function DashboardPage() {
                 <p className="text-xs text-gray-500 mt-1">Escalated to human • 6 hours ago</p>
               </div>
             </div>
-            <Button variant="outline" className="w-full bg-transparent">
+            <Button variant="outline" className="w-full">
               View All Queries
             </Button>
           </CardContent>
