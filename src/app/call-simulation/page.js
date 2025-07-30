@@ -199,6 +199,14 @@ export default function CallSimulationPage() {
   const [reconnectAttempts, setReconnectAttempts] = useState(0)
   const [retryCount, setRetryCount] = useState(0)
 
+  // useRef for ragEnabled
+  const ragEnabledRef = useRef(ragEnabled);
+
+  // update ragEnabled whenever it changes
+  useEffect(() => {
+    ragEnabledRef.current = ragEnabled;
+  }, [ragEnabled]);
+
   // token state (read from localStorage)
   const [token, setToken] = useState(() => {
     if (typeof window !== "undefined") {
@@ -207,42 +215,42 @@ export default function CallSimulationPage() {
     return "";
   });
 
-// Ensure authentication and session ID are set before WebSocket connection
-useEffect(() => {
-  const isAuthenticated = localStorage.getItem("isAuthenticated");
-  if (!isAuthenticated) {
-    router.push("/login");
-    return;
-  }
-  const accessToken = localStorage.getItem("accessToken") || "";
-  setToken(accessToken);
-  setSessionId(`session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
-
-  // Fetch user info and connect WebSocket using tenant_id and id directly
-  async function fetchUserInfoAndConnect() {
-    try {
-      const resp = await fetch(`${API_BASE_URL}/auth/user`, {
-        method: "GET",
-        headers: {
-          "accept": "application/json",
-          "Authorization": `Bearer ${accessToken}`
-        }
-      });
-      if (!resp.ok) {
-        throw new Error("Failed to fetch user info: " + resp.status);
-      }
-      const data = await resp.json();
-      console.log("Fetched user info:", data);
-      connectWebSocket(data.tenant_id, data.id);
-    } catch (err) {
-      console.error("❌ Error fetching user info:", err);
-      // Optionally redirect to login or show error
+  // Ensure authentication and session ID are set before WebSocket connection
+  useEffect(() => {
+    const isAuthenticated = localStorage.getItem("isAuthenticated");
+    if (!isAuthenticated) {
+      router.push("/login");
+      return;
     }
-  }
-  if (accessToken) {
-    fetchUserInfoAndConnect();
-  }
-}, [router]);
+    const accessToken = localStorage.getItem("accessToken") || "";
+    setToken(accessToken);
+    setSessionId(`session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+
+    // Fetch user info and connect WebSocket using tenant_id and id directly
+    async function fetchUserInfoAndConnect() {
+      try {
+        const resp = await fetch(`${API_BASE_URL}/auth/user`, {
+          method: "GET",
+          headers: {
+            "accept": "application/json",
+            "Authorization": `Bearer ${accessToken}`
+          }
+        });
+        if (!resp.ok) {
+          throw new Error("Failed to fetch user info: " + resp.status);
+        }
+        const data = await resp.json();
+        console.log("Fetched user info:", data);
+        connectWebSocket(data.tenant_id, data.id);
+      } catch (err) {
+        console.error("❌ Error fetching user info:", err);
+        // Optionally redirect to login or show error
+      }
+    }
+    if (accessToken) {
+      fetchUserInfoAndConnect();
+    }
+  }, [router]);
 
   // Change WebSocket useEffect to always maintain connection
   useEffect(() => {
@@ -330,6 +338,12 @@ useEffect(() => {
     const messageType = data.type || "unknown";
     console.log("🔍 Received WebSocket message:", messageType, data);
 
+    // Print ragEnabled and data.rag for debugging
+    console.log("[DEBUG] ragEnabled (current UI state):", ragEnabledRef.current); // thisIsRag
+    if (typeof data.use_rag !== "undefined") {
+      console.log("[DEBUG] data.use_rag (from backend):", data.use_rag); // thisIsRag
+    }
+
     // Display all incoming responses regardless of query_id
     if (
       messageType === "query_result" ||
@@ -357,7 +371,7 @@ useEffect(() => {
         timestamp: new Date(),
         isText: true,
         queryId: data.query_id || "",
-        rag: data.rag !== false,
+        rag: data.use_rag || false, // thisIsRag
       };
       setConversation((prev) => [...prev, botMessage]);
       setIsTyping(false);
@@ -366,6 +380,10 @@ useEffect(() => {
 
     // Handle all other message types
     switch (messageType) {
+      case "session_id":
+        console.log("🆔 Received session_id from backend:", data.session_id);
+        break;
+
       case "ping":
         console.log("🏓 Ping received - sending pong");
         if (websocket) {
@@ -393,6 +411,7 @@ useEffect(() => {
             message: transcriptResult,
             timestamp: new Date(),
             isText: false,
+            rag: ragEnabledRef.current, // thisIsRag
           };
           setConversation((prev) => [...prev, transcriptionMessage]);
         }
@@ -535,6 +554,7 @@ useEffect(() => {
       message: query,
       timestamp: new Date(),
       isText: true,
+      rag: ragEnabledRef.current, // thisIsRag
     };
     setConversation((prev) => [...prev, userMessage]);
     setIsTyping(true);
@@ -553,12 +573,15 @@ useEffect(() => {
       }
       const userData = await resp.json();
 
+      console.log("[DEBUG] ragEnabled sent to backend (1):", ragEnabledRef.current); // thisIsRag
       const payload = {
         tenant_id: userData.tenant_id,
         user_id: userData.id,
         query,
-        use_rag: true
+        use_rag: ragEnabledRef.current // thisIsRag
       };
+
+      console.log("[DEBUG] Sending query payload:", payload);
 
       const response = await fetch(`${API_BASE_URL}/query/submit`, {
         method: "POST",
@@ -633,12 +656,13 @@ useEffect(() => {
     setCallStatus("Connecting...");
 
     if (websocket) {
+      console.log("[DEBUG] ragEnabled sent to backend (2):", ragEnabledRef.current); // thisIsRag
       const startMessage = {
         type: "start_continuous_conversation",
         tts_language: "en",
         voice: "en-US-JennyNeural",
         auto_respond: true,
-        rag: ragEnabled
+        rag: ragEnabledRef.current // thisIsRag
       };
       websocket.send(JSON.stringify(startMessage));
     }
@@ -777,8 +801,8 @@ useEffect(() => {
                       {isSpeakerOn && <span className="text-blue-600">🔊 Speaker On</span>}
                       {isRecordingCall && <span className="text-red-600">⏺ Recording Call</span>}
                       {wsConnected && <span className="text-green-600">🔗 Connected</span>}
-                      <span className={ragEnabled ? "text-green-600" : "text-gray-500"}>
-                        RAG {ragEnabled ? "✓" : "✗"}
+                      <span className={ragEnabledRef.current ? "text-green-600" : "text-gray-500"}>
+                        RAG {ragEnabledRef.current ? "✓" : "✗"}
                       </span>
                     </div>
                   </div>
@@ -845,11 +869,10 @@ useEffect(() => {
                         {message.queryId && (
                           <p className="text-xs text-gray-400 mt-1">
                             Query ID: {message.queryId}
-                            {/* <span className={`ml-2 ${ragEnabled ? "text-green-600" : "text-gray-500"}`}> RAG {ragEnabled ? "✓" : "✗"} </span> */}
-                            {message.rag !== false && (
+                            {/* Show RAG status based on message.rag value */}
+                            {message.rag === true ? (
                               <span className="ml-2 text-green-500">RAG ✓</span>
-                            )}
-                            {message.rag === false && (
+                            ) : (
                               <span className="ml-2 text-gray-500">RAG ✗</span>
                             )}
                           </p>
