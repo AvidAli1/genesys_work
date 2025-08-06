@@ -225,6 +225,7 @@ const VoiceMessage = ({ message, isUser }) => {
 
 export default function CallSimulationPage() {
   const [isCallActive, setIsCallActive] = useState(false)
+  const isCallActiveRef = useRef(isCallActive);
   const [isMuted, setIsMuted] = useState(false)
   const [isRecordingCall, setIsRecordingCall] = useState(false)
   const [conversation, setConversation] = useState([])
@@ -295,6 +296,10 @@ export default function CallSimulationPage() {
   const callAudioContextRef = useRef(null);
   const isMutedRef = useRef(isMuted);
   /* NEW */
+
+  useEffect(() => {
+    isCallActiveRef.current = isCallActive;
+  }, [isCallActive]);
 
   /* NEW */
   // Add this useEffect
@@ -701,19 +706,54 @@ export default function CallSimulationPage() {
     const messageType = data.type || "unknown";
     console.log("🔍 Received WebSocket message:", messageType, data);
 
-    /* NEW */
-    // Add this case to handle call audio streams
+    // Use ref value to avoid closure issues
+    const currentCallActive = isCallActiveRef.current;
+
+    // Handle audio streams immediately with current state
     if (messageType === "audio_stream") {
-      console.log("🔊 Received audio stream for call");
-      handleCallTTSChunk(data.audio_data);
+      if (currentCallActive) {
+        console.log("🔊 [CALL] Playing audio stream instantly");
+        handleCallTTSChunk(data.audio_data);
+      } else {
+        console.log("🔊 [VOICE MESSAGE] Adding audio chunk to conversation");
+        const chunkIndex = parseInt(data.task_id.split('_').pop());
+        const baseTaskId = data.task_id.substring(0, data.task_id.lastIndexOf('_'));
+
+        setConversation(prev => {
+          const existingIndex = prev.findIndex(
+            msg => msg.taskId === baseTaskId && msg.type === 'audio_chunk'
+          );
+
+          if (existingIndex !== -1) {
+            // Update existing entry with new chunk
+            const updated = [...prev];
+            const existingChunks = updated[existingIndex].chunks || [];
+            updated[existingIndex] = {
+              ...updated[existingIndex],
+              chunks: [...existingChunks, { index: chunkIndex, base64: data.audio_data }]
+            };
+            return updated;
+          } else {
+            // Create new entry with first chunk
+            return [
+              ...prev,
+              {
+                type: 'audio_chunk',
+                taskId: baseTaskId,
+                chunks: [{ index: chunkIndex, base64: data.audio_data }],
+                timestamp: new Date()
+              }
+            ];
+          }
+        });
+      }
       return;
     }
-    /* NEW */
 
     // Print ragEnabled and data.rag for debugging
-    console.log("[DEBUG] ragEnabled (current UI state):", ragEnabledRef.current); // thisIsRag
+    console.log("[DEBUG] ragEnabled (current UI state):", ragEnabledRef.current);
     if (typeof data.use_rag !== "undefined") {
-      console.log("[DEBUG] data.use_rag (from backend):", data.use_rag); // thisIsRag
+      console.log("[DEBUG] data.use_rag (from backend):", data.use_rag);
     }
 
     // Display all incoming responses regardless of query_id
@@ -722,12 +762,6 @@ export default function CallSimulationPage() {
       messageType === "text_response" ||
       messageType === "query_with_tts_result"
     ) {
-      // console.log("Incoming response ID:", data.query_id, "Last sent query ID:", lastQueryId);
-      // if (!data.query_id || data.query_id !== lastQueryId) {
-      //   console.warn("⚠️ Received response for a different query_id. Ignoring.");
-      //   return;
-      // }
-
       const responseText = data.response || data.message || "";
       console.log(`✅ Got matching response (${messageType}):`, responseText);
 
@@ -737,12 +771,11 @@ export default function CallSimulationPage() {
         window.currentResponseTimeout = null;
       }
 
-      /* NEW */
-      if (isCallActive) {
+      // Skip chat updates during calls
+      if (currentCallActive) {
         console.log("🧏 Skipping chat message rendering during call");
         return;
       }
-      /* NEW */
 
       const botMessage = {
         type: "bot",
@@ -750,7 +783,7 @@ export default function CallSimulationPage() {
         timestamp: new Date(),
         isText: true,
         queryId: data.query_id || "",
-        rag: data.use_rag || false, // thisIsRag
+        rag: data.use_rag || false,
       };
       setConversation((prev) => [...prev, botMessage]);
       setIsTyping(false);
@@ -783,12 +816,13 @@ export default function CallSimulationPage() {
         const transcriptResult = data.transcript || "";
         const confidence = data.confidence || 0.0;
         const processingTime = data.processing_time || 0.0;
-        /* NEW */
-        if (isCallActive) {
+
+        // Skip transcription UI updates during calls
+        if (currentCallActive) {
           console.log("🧏 Skipping transcription UI update during call");
           return;
         }
-        /* NEW */
+
         if (transcriptResult.trim()) {
           console.log(`📝 Transcription: ${transcriptResult} (${processingTime.toFixed(2)}s)`);
           const transcriptionMessage = {
@@ -855,44 +889,6 @@ export default function CallSimulationPage() {
         break;
       }
 
-      case 'audio_stream': {
-        if (isCallActive) {
-          handleCallTTSChunk(data.audio_data);
-          return;
-        }
-        const chunkIndex = parseInt(data.task_id.split('_').pop());
-        const baseTaskId = data.task_id.substring(0, data.task_id.lastIndexOf('_'));
-
-        setConversation(prev => {
-          const existingIndex = prev.findIndex(
-            msg => msg.taskId === baseTaskId && msg.type === 'audio_chunk'
-          );
-
-          if (existingIndex !== -1) {
-            // Update existing entry with new chunk
-            const updated = [...prev];
-            const existingChunks = updated[existingIndex].chunks || [];
-            updated[existingIndex] = {
-              ...updated[existingIndex],
-              chunks: [...existingChunks, { index: chunkIndex, base64: data.audio_data }]
-            };
-            return updated;
-          } else {
-            // Create new entry with first chunk
-            return [
-              ...prev,
-              {
-                type: 'audio_chunk',
-                taskId: baseTaskId,
-                chunks: [{ index: chunkIndex, base64: data.audio_data }],
-                timestamp: new Date()
-              }
-            ];
-          }
-        });
-        break;
-      }
-
       case "error": {
         const errorMsg = typeof data === "string" ? data : data.message || "Unknown error";
         console.error(`❌ WebSocket Error: ${errorMsg}`);
@@ -900,14 +896,18 @@ export default function CallSimulationPage() {
           clearTimeout(window.currentResponseTimeout);
           window.currentResponseTimeout = null;
         }
-        const errorMessage = {
-          type: "bot",
-          message: `Error: ${errorMsg}`,
-          timestamp: new Date(),
-          isText: true,
-        };
-        setConversation((prev) => [...prev, errorMessage]);
-        setIsTyping(false);
+
+        // Only show errors when not in call
+        if (!currentCallActive) {
+          const errorMessage = {
+            type: "bot",
+            message: `Error: ${errorMsg}`,
+            timestamp: new Date(),
+            isText: true,
+          };
+          setConversation((prev) => [...prev, errorMessage]);
+          setIsTyping(false);
+        }
         break;
       }
 
@@ -919,7 +919,7 @@ export default function CallSimulationPage() {
         console.warn("⚠️ Unhandled message type:", messageType, data);
         break;
     }
-  }
+  };
 
   // Effect for call duration timer
   useEffect(() => {
