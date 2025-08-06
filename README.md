@@ -37,3 +37,6 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 Use this link to see swagger UI endpoints:
 http://172.17.180.124:8000/docs#/
+
+To set node path (for 'npm run dev')
+$env:Path += ";C:\voicebot\nodejs"

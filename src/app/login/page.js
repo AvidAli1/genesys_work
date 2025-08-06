@@ -8,7 +8,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { AlertCircle } from "lucide-react"
 
-const API_BASE_URL = "http://172.17.180.124:8000"
+const API_BASE_URL = "http://111.68.96.71:8000"
+
+// Local IP: 172.17.180.124:8000
+// Live IP: 111.68.96.71
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
