@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { AlertCircle } from "lucide-react"
 
-const API_BASE_URL = "http://111.68.96.71:8000"
+const API_BASE_URL = "https://111.68.96.71:8443"
 
 // Local IP: 172.17.180.124:8000
 // Live IP: 111.68.96.71

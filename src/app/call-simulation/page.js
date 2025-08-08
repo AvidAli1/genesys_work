@@ -10,8 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import AudioPlayer from './components/AudioPlayer';
-const API_BASE_URL = "http://111.68.96.71:8000"
-const WS_BASE_URL = "ws://111.68.96.71:8000"
+const API_BASE_URL = "https://111.68.96.71:8443"
+const WS_BASE_URL = "wss://111.68.96.71:8443"
 
 // Local IP: 172.17.180.124:8000
 // Live IP: 111.68.96.71
@@ -264,7 +264,6 @@ export default function CallSimulationPage() {
   // New state for text chat
   const [textMessage, setTextMessage] = useState("")
   const [isTyping, setIsTyping] = useState(false)
-  const [sessionId, setSessionId] = useState(null)
 
   // WebSocket state
   const [websocket, setWebsocket] = useState(null)
@@ -287,7 +286,6 @@ export default function CallSimulationPage() {
   // useRef to keep track of ragEnabled state
   const recordingStreamRef = useRef(null);
 
-  /* NEW */
   // New refs for continuous recording
   const continuousRecordingRef = useRef(null);
   const continuousWorkerRef = useRef(null);
@@ -295,13 +293,31 @@ export default function CallSimulationPage() {
   const isCallAudioPlayingRef = useRef(false);
   const callAudioContextRef = useRef(null);
   const isMutedRef = useRef(isMuted);
+
+  // For session_id and device_id
+  const [sessionId, setSessionId] = useState(null)
+  const [deviceId, setDeviceId] = useState(null);
+  const sessionIdRef = useRef(null);
+  const deviceIdRef = useRef(null);
+
   /* NEW */
+  const isRecordingRef = useRef(false);
+  // Update both state and ref
+  const setRecordingState = (recording) => {
+    isRecordingRef.current = recording;
+    setIsRecording(recording);
+  };
+  /* NEW */
+
+  useEffect(() => {
+    sessionIdRef.current = sessionId;
+    deviceIdRef.current = deviceId;
+  }, [sessionId, deviceId]);
 
   useEffect(() => {
     isCallActiveRef.current = isCallActive;
   }, [isCallActive]);
 
-  /* NEW */
   // Add this useEffect
   useEffect(() => {
     isMutedRef.current = isMuted;
@@ -454,7 +470,7 @@ export default function CallSimulationPage() {
 
     if (websocket && wsConnected) {
       websocket.send(JSON.stringify({
-        type: "audio_chunk",
+        type: "continous_audio_stream",
         audio: '',
         sample_rate: 16000,
         channels: 1,
@@ -592,7 +608,6 @@ export default function CallSimulationPage() {
     }
     const accessToken = localStorage.getItem("accessToken") || "";
     setToken(accessToken);
-    setSessionId(`session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
 
     // Fetch user info and connect WebSocket using tenant_id and id directly
     async function fetchUserInfoAndConnect() {
@@ -621,17 +636,33 @@ export default function CallSimulationPage() {
   }, [router]);
 
   // Change WebSocket useEffect to always maintain connection
+  /* NEW */
   useEffect(() => {
-    // WebSocket connection now handled after fetching user info
+    // Only handle cleanup on component unmount, not on dependency changes
     return () => {
       if (websocket) {
+        console.log("🧹 Component unmounting - cleaning up WebSocket");
         disconnectWebSocket();
       }
     };
-  }, [token, sessionId]);
+  }, []);
+  /* NEW */
 
   // WebSocket connection now uses tenant_id and id directly
   const connectWebSocket = (tenantId, userId) => {
+
+    console.log("🔗 Attempting WebSocket connection, current state:", {
+      existingWS: !!websocket,
+      existingState: websocket?.readyState,
+      wsConnected
+    });
+
+    // If there's already a connection, close it first
+    if (websocket && websocket.readyState !== WebSocket.CLOSED) {
+      console.log("🔄 Closing existing WebSocket before creating new one");
+      websocket.close();
+    }
+
     try {
       const wsUrl = `${WS_BASE_URL}/ws/${tenantId}/${userId}`;
       console.log(`🔗 Connecting to ${wsUrl}`);
@@ -654,6 +685,10 @@ export default function CallSimulationPage() {
             console.log("✅ Got text response:", data.response);
           }
 
+          /* NEW */
+          console.log("[RAG DEBUG] Incoming message rag_used:", data.rag_used, "Full message:", data);
+          /* NEW */
+
           if (typeof data === 'object' && data !== null && 'type' in data) {
             handleWebSocketMessage(data);
           } else {
@@ -674,6 +709,7 @@ export default function CallSimulationPage() {
         console.log("🔌 WebSocket connection closed:", event.code, event.reason);
         setWsConnected(false);
         setWebsocket(null);
+        console.log("Session ID:", sessionId, "Device ID:", deviceId);
 
         if (reconnectAttempts < 3 && event.code !== 1000) {
           setTimeout(() => {
@@ -690,17 +726,32 @@ export default function CallSimulationPage() {
     }
   };
 
+  /* NEW */
   const disconnectWebSocket = () => {
-    if (websocket) {
-      // Stop continuous conversation mode
-      const stopMessage = { type: "stop_continuous_conversation" }
-      websocket.send(JSON.stringify(stopMessage))
+    if (websocket && (websocket.readyState === WebSocket.OPEN || websocket.readyState === WebSocket.CONNECTING)) {
+      console.log("🔌 Disconnecting WebSocket, current state:", websocket.readyState);
 
-      websocket.close()
-      setWebsocket(null)
-      setWsConnected(false)
+      // Stop continuous conversation mode if active
+      if (websocket.readyState === WebSocket.OPEN) {
+        try {
+          const stopMessage = { type: "stop_continuous_conversation" };
+          websocket.send(JSON.stringify(stopMessage));
+        } catch (error) {
+          console.warn("⚠️ Could not send stop message:", error);
+        }
+      }
+
+      websocket.close(1000, "Disconnecting");
+      setWebsocket(null);
+      setWsConnected(false);
+    } else {
+      console.log("🔌 WebSocket is already in CLOSING or CLOSED state, skipping disconnect");
+      // Still clean up state even if WebSocket is already closed
+      setWebsocket(null);
+      setWsConnected(false);
     }
-  }
+  };
+  /* NEW */
 
   const handleWebSocketMessage = (data) => {
     const messageType = data.type || "unknown";
@@ -783,8 +834,11 @@ export default function CallSimulationPage() {
         timestamp: new Date(),
         isText: true,
         queryId: data.query_id || "",
-        rag: data.use_rag || false,
+        rag: data.rag_used || false,
       };
+      /* NEW */
+      console.log("[RAG DEBUG] Creating bot message with rag:", botMessage.rag);
+      /* NEW */
       setConversation((prev) => [...prev, botMessage]);
       setIsTyping(false);
       return;
@@ -792,8 +846,11 @@ export default function CallSimulationPage() {
 
     // Handle all other message types
     switch (messageType) {
-      case "session_id":
-        console.log("🆔 Received session_id from backend:", data.session_id);
+
+      case "session_info":
+        console.log("🆔 Received session info:", data.session_id, data.device_id);
+        setSessionId(data.session_id);
+        setDeviceId(data.device_id);
         break;
 
       case "ping":
@@ -1023,7 +1080,7 @@ export default function CallSimulationPage() {
       message: query,
       timestamp: new Date(),
       isText: true,
-      rag: ragEnabledRef.current, // thisIsRag
+      rag: ragEnabledRef.current,
     };
     setConversation((prev) => [...prev, userMessage]);
     setIsTyping(true);
@@ -1037,45 +1094,70 @@ export default function CallSimulationPage() {
           "Authorization": `Bearer ${token}`
         }
       });
+
       if (!resp.ok) {
         throw new Error("Failed to fetch user info: " + resp.status);
       }
-      const userData = await resp.json();
 
-      console.log("[DEBUG] ragEnabled sent to backend (1):", ragEnabledRef.current); // thisIsRag
+      const userData = await resp.json();
+      console.log("User data fetched:", userData);
+
+      console.log("Current sessionId:", sessionId);
+      console.log("Current deviceId:", deviceId);
+      // Prepare payload with session and device info
       const payload = {
+        query: query.trim(),
+        session_id: sessionId,
+        device_id: deviceId,
+        use_rag: ragEnabledRef.current,
+        fallback_on_error: true,
+        max_tokens: 1012,
+        temperature: 0.7,
         tenant_id: userData.tenant_id,
         user_id: userData.id,
-        query,
-        use_rag: ragEnabledRef.current // thisIsRag
       };
 
-      console.log("[DEBUG] Sending query payload:", payload);
+      console.log("[DEBUG] Query payload with session info:", payload);
 
       const response = await fetch(`${API_BASE_URL}/query/submit`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          "Authorization": `Bearer ${token}`,
+          "Accept": "application/json"
         },
         body: JSON.stringify(payload),
       });
 
+      const responseText = await response.text();
+      console.log("[DEBUG] Raw response body:", responseText);
+
       if (!response.ok) {
         let errorMsg = `HTTP error! status: ${response.status}`;
         try {
-          const errorData = await response.json();
-          errorMsg = errorData.message || errorMsg;
+          const errorData = JSON.parse(responseText);
+          if (errorData.detail) {
+            if (Array.isArray(errorData.detail)) {
+              errorMsg = errorData.detail.map(err => `${err.loc.join('.')}: ${err.msg}`).join(', ');
+            } else {
+              errorMsg = errorData.detail;
+            }
+          } else {
+            errorMsg = errorData.message || errorMsg;
+          }
         } catch (e) {
-          // Use default error message if can't parse response
+          console.warn("[DEBUG] Could not parse error response as JSON");
         }
         throw new Error(errorMsg);
       }
 
-      const data = await response.json();
-      setLastQueryId(data.query_id);
-      console.log("Sent query with ID:", data.query_id);
+      const data = JSON.parse(responseText);
+      console.log("[DEBUG] Parsed success response:", data);
 
+      setLastQueryId(data.query_id);
+      console.log("✅ Query submitted successfully with ID:", data.query_id);
+
+      // Set timeout for WebSocket response
       window.currentResponseTimeout = setTimeout(() => {
         console.warn("⏰ No WebSocket response received within 30 seconds");
         setIsTyping(false);
@@ -1113,17 +1195,19 @@ export default function CallSimulationPage() {
     setTextMessage("");
   };
 
-  const recorderInstanceRef = useRef(null);
-  const recorderStreamRef = useRef(null);
-  let recorderWorker = null;
-
   const startVoiceRecording = async () => {
+    if (isRecordingRef.current) return;
     if (isRecording) return;
     if (!websocket || !wsConnected) {
       console.error("❌ WebSocket not connected");
       return;
     }
-
+    /* NEW  */
+    const audioContext = new AudioContext();
+    if (audioContext.state === 'suspended') {
+      await audioContext.resume();
+    }
+    /* NEW */
     try {
       // 1. Get microphone access
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -1147,15 +1231,21 @@ export default function CallSimulationPage() {
       const recorder = new Recorder(audioContext);
       await recorder.init(stream);
       recorder.start();
+      /* NEW */
+      setRecordingState(true);
+      /* NEW */
       recorderRef.current = recorder;
 
       // 4. ONLY NOW set recording to true (after everything has initialized)
-      setTimeout(() => {
+      setTimeout(async () => {
         setIsRecording(true);
         console.log("🎤 Voice recording started");
-      }, 300); // small delay to recording actually start
+      }); // small delay to recording actually start
 
     } catch (error) {
+      /* NEW */
+      setRecordingState(false);
+      /* NEW */
       console.error('❌ Error starting voice recording:', error);
       cleanupRecordingResources();
       alert('Could not access microphone. Please check permissions.');
@@ -1163,6 +1253,9 @@ export default function CallSimulationPage() {
   };
 
   const stopVoiceRecording = async () => {
+    /* NEW */
+    if (!isRecordingRef.current) return;
+    /* NEW */
     if (!isRecording || !recorderRef.current) return;
 
     try {
@@ -1203,8 +1296,8 @@ export default function CallSimulationPage() {
             }));
             console.log('Saved processed base64 audio (first 30 chars):', e.data.substring(0, 30));
 
-            // 3. Send audio to server via WebSocket
-            if (websocket && wsConnected) {
+            // 3. Send audio to server via WebSocket /* NEW */
+            if (websocket && wsConnected && websocket?.readyState === WebSocket.OPEN) {
               websocket.send(JSON.stringify({
                 /* NEW */
                 type: "audio_chunk",
@@ -1233,7 +1326,10 @@ export default function CallSimulationPage() {
               };
               setConversation((prev) => [...prev, userVoiceMessage]);
             }
-            worker.terminate();
+            if (e.data === 'done') {
+              worker.terminate();
+              return;
+            }
             resolve();
           };
           worker.postMessage(float32Array);
@@ -1244,6 +1340,7 @@ export default function CallSimulationPage() {
       console.error('❌ Error stopping recording:', error);
     } finally {
       cleanupRecordingResources();
+      setRecordingState(false);
       setIsRecording(false);
       setRecordingDuration(0);
       console.log("🛑 Voice recording stopped");
@@ -1362,26 +1459,89 @@ export default function CallSimulationPage() {
     }
   }
 
+  /* NEW */
   const endCall = () => {
-    /* NEW */
-    stopContinuousRecording();
-    /* NEW */
-    setIsCallActive(false)
-    setIsMuted(false)
-    setIsRecordingCall(false)
-    setCallStatus("Call Ended")
+    console.log("📞 Ending call...");
 
-    /* NEW */
-    // Clear call audio queue
+    // Stop continuous recording first
+    stopContinuousRecording();
+
+    // Update UI state
+    setIsCallActive(false);
+    setIsMuted(false);
+    setIsRecordingCall(false);
+    setCallStatus("Call Ended");
+
+    // Clear call audio queue and context
     callAudioQueueRef.current = [];
     isCallAudioPlayingRef.current = false;
-
     if (callAudioContextRef.current) {
       callAudioContextRef.current.close();
       callAudioContextRef.current = null;
     }
-    /* NEW */
-  }
+
+    // Handle WebSocket disconnection more gracefully
+    if (websocket && websocket.readyState === WebSocket.OPEN) {
+      // Send stop message to backend
+      try {
+        const stopMessage = { type: "stop_continuous_conversation" };
+        websocket.send(JSON.stringify(stopMessage));
+      } catch (error) {
+        console.warn("⚠️ Could not send stop message:", error);
+      }
+
+      // Close the WebSocket connection
+      websocket.close(1000, "Call ended");
+    }
+
+    // Clean up WebSocket state immediately
+    setWebsocket(null);
+    setWsConnected(false);
+
+    // Reset reconnection attempts for fresh start
+    setReconnectAttempts(0);
+
+    // Reconnect after ensuring clean disconnection
+    setTimeout(() => {
+      const isAuthenticated = localStorage.getItem("isAuthenticated");
+      const accessToken = localStorage.getItem("accessToken") || "";
+
+      if (!isAuthenticated || !accessToken) {
+        console.warn("⚠️ Not authenticated, redirecting to login");
+        router.push("/login");
+        return;
+      }
+
+      console.log("🔄 Reconnecting WebSocket after call end...");
+
+      // Fetch fresh user info and reconnect
+      fetch(`${API_BASE_URL}/auth/user`, {
+        method: "GET",
+        headers: {
+          "accept": "application/json",
+          "Authorization": `Bearer ${accessToken}`
+        }
+      })
+        .then(resp => {
+          if (!resp.ok) {
+            throw new Error(`Failed to fetch user info: ${resp.status}`);
+          }
+          return resp.json();
+        })
+        .then(data => {
+          console.log("🔄 Reconnecting with fresh user data:", data);
+          // Connect with fresh tenant_id and user_id
+          connectWebSocket(data.tenant_id, data.id);
+        })
+        .catch(err => {
+          console.error("❌ Error reconnecting WebSocket after call:", err);
+          if (err.message.includes('401') || err.message.includes('403')) {
+            router.push("/login");
+          }
+        });
+    }, 1500); // Slightly longer delay to ensure clean state
+  };
+  /* NEW */
 
   const toggleMute = () => {
     setIsMuted(!isMuted)
