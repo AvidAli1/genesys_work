@@ -847,6 +847,10 @@ export default function CallSimulationPage() {
     // Handle all other message types
     switch (messageType) {
 
+      case "audio_chunk_processed":
+        console.log("✅ Audio chunk processed:", data.chunk_id);
+        break;
+
       case "session_info":
         console.log("🆔 Received session info:", data.session_id, data.device_id);
         setSessionId(data.session_id);

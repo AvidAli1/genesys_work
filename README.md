@@ -40,3 +40,6 @@ http://172.17.180.124:8000/docs#/
 
 To set node path (for 'npm run dev')
 $env:Path += ";C:\voicebot\nodejs"
+
+To run with self signed SSL Certificate
+"C:\Program Files\Google\Chrome\Application\chrome.exe" --ignore-certificate-errors --user-data-dir="C:/ChromeDevSession"
